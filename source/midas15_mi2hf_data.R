@@ -1,17 +1,17 @@
 # Project: Heart Failures after MIs in MIDAS       
 # Author: Jen Wellings; Davit Sargsyan   
 # Created:  04/22/2016
-# Modified: 04/08/2017
-########################################
+# Modified: 04/15/2017
+#**********************************************************
+# PART I----
 DATA_HOME <- "C:/Users/ds752/Documents/git_local/data/midas.mi2hf"
-
 require(data.table)
-# Load MIDAS
-setwd("C:/MIDAS")
-system.time(load("midas15.RData"))
+
+# Load MIDAS----
+system.time(load("C:/MIDAS/midas15.RData"))
 midas15
 
-# Remove unused variables
+# Remove unused variables----
 midas15[, LOCATION := NULL]
 midas15[, CAUSE := NULL]
 midas15[, DeathRNUM := NULL]
@@ -39,7 +39,7 @@ gc()
 length(unique(midas15$Patient_ID))
 # 4,842,160
 
-# Convert dates
+# Convert dates----
 midas15[, NEWDTD := as.Date(NEWDTD, format = "%m/%d/%Y")]
 midas15[, ADMDAT := as.Date(ADMDAT, format = "%m/%d/%Y")]
 midas15[, DSCHDAT := as.Date(DSCHDAT, format = "%m/%d/%Y")]
@@ -49,27 +49,44 @@ midas15[, patbdte := as.Date(patbdte, format = "%m/%d/%Y")]
 midas15[is.na(midas15$patbdte)]
 # All records for these patients
 midas15[Patient_ID %in% Patient_ID[is.na(patbdte)]]
-# There are 9 patients with missing birthday records; REMOVE THEM
+# There are 8 patients with missing birthday records; REMOVE THEM
 midas15$Patient_ID[is.na(midas15$patbdte)]
 midas15 <- subset(midas15, 
                   !(Patient_ID %in% Patient_ID[is.na(patbdte)]))
 summary(midas15$patbdte)
 
-# People born before 1886s
-subset(midas15, patbdte < "1886-01-01")
+# Keep only records from 01/01/1995 (admission dates)
+midas15 <- subset(midas15, ADMDAT >= "1995-01-11")
 
-# Number of hospitals
+# Remove records with discarge date before admission
+midas15[which(midas15$ADMDAT > midas15$DSCHDAT), ]
+midas15 <- subset(midas15, ADMDAT <= DSCHDAT)
+
+range(midas15$ADMDAT)
+range(midas15$DSCHDAT)
+
+# Remove anybody who was younger than 20 at any admisson
+midas15[, AGE := floor(as.numeric(difftime(ADMDAT, 
+                                           patbdte,
+                                           units = "days"))/365.25)]
+hist(midas15$AGE, 100)
+id.rm <- midas15$Patient_ID[midas15$AGE < 20]
+midas15 <- subset(midas15, !(Patient_ID %in% id.rm))
+hist(midas15$AGE, 100)
+gc()
+
+# Number of hospitals----
 unique(midas15$HOSP)
 length(unique(midas15$HOSP))
 table(midas15$HOSP)
 sum(is.na(midas15$HOSP))
-# 95 + 1(#2000, error code?)
+# 94 + 1(#2000, error code?)
 
-# Convert to factors
-# Sex
+# Convert to factors----
+# Sex----
 midas15[, SEX := factor(SEX, levels = c("F", "M"))]
 
-# Race
+# Race----
 table(midas15$RACE)
 midas15$RACE1 <- "Other"
 midas15$RACE1[midas15$RACE == 1] <- "White"
@@ -82,7 +99,7 @@ table(midas15$RACE1)
 midas15[, RACE := NULL]
 names(midas15)[ncol(midas15)] <- "RACE"
 
-# Primary insurance
+# Primary insurance----
 midas15$PRIME[!(midas15$PRIME %in% c("medicaid",
                                      "medicare",
                                      "self pay" ,
@@ -90,8 +107,9 @@ midas15$PRIME[!(midas15$PRIME %in% c("medicaid",
 midas15$PRIME[midas15$PRIME %in% c("medicaid",
                                    "self pay")] <- "medicaid/self-pay"
 table(midas15$PRIME)
+gc()
 
-# Hispanic
+# Hispanic----
 table(midas15$HISPAN)
 midas15$HISP <- "Hispanic"
 midas15$HISP[midas15$HISPAN %in% c(".", "9", "A")] <- "Unknown"
@@ -108,25 +126,12 @@ gc()
 summary(midas15)
 gc()
 
+# Sort----
 setkey(midas15,
        Patient_ID,
        ADMDAT)
 midas15[, NDX := 1:.N,
         by = Patient_ID]
-
-# Keep only records from 01/01/1995 (admission dates)
-midas15 <- subset(midas15, ADMDAT >= "1995-01-11")
-gc()
-
-# 3. Remove anybody who was younger than 20 at any admisson
-midas15[, AGE := floor(as.numeric(difftime(ADMDAT, 
-                                           patbdte,
-                                           units = "days"))/365.25)]
-hist(midas15$AGE, 100)
-id.rm <- midas15$Patient_ID[midas15$AGE < 20]
-midas15 <- subset(midas15, !(Patient_ID %in% id.rm))
-gc()
-hist(midas15$AGE, 100)
 
 #**********************************************************
 # Separate diagnostic codes (DX1:DX9)
@@ -139,20 +144,46 @@ dx.1.3[, cnames[-1] := lapply(dx.1.3[, cnames[-1], with = FALSE],
                               start = 1,
                               stop = 3)]
 
-# Separate procedure codes (PROC1:PROC9)
+#**********************************************************
+# Exclusions: Cancers----
+# See "C:\Users\ds752\Documents\svn_local\trunk\Cardiovascular\Jen Wellings HF After MI\ICD-9-CM Cancer Codes Exclude.txt" for details)
+excl.rec <- rowSums(apply(X = dx.1.3[, -1, with = FALSE],
+                          MARGIN = 2, 
+                          FUN = function(a) {
+                            a %in% as.character(c(140:165, 170:176, 180:239))
+                          })) > 0
+table(excl.rec)
+id.rm <- unique(midas15$Patient_ID[excl.rec])
+rec.keep <- which(!(midas15$Patient_ID %in% id.rm))
+
+midas15 <- midas15[rec.keep, ]
+dx <- dx[rec.keep, ]
+proc <- proc[rec.keep, ]
+dx.1.3 <- dx.1.3[rec.keep, ]
+dt1 <- dt1[rec.keep, ]
+
+rm(excl.rec,
+   id.rm,
+   rec.keep)
+gc()
+
+# Procedure codes (PROC1:PROC9)----
 proc <- midas15[, .(Patient_ID, PROC1, PROC2, PROC3, PROC4, PROC5, PROC6, PROC7, PROC8)]
 
-dt1 <- data.table(id = midas15$Patient_ID)
-
 save(midas15, dx, dx.1.3, proc, 
-     file = file.path(DATA_HOME, "midas15_mi2hf_04082017.RData"), 
+     file = file.path(DATA_HOME, "midas15_mi2hf_08042017.RData"), 
      compress = FALSE)
 
 #**********************************************************
 # PART II----
-load(file.path(DATA_HOME, "midas15_mi2hf_04082017.RData"))
+DATA_HOME <- "C:/Users/ds752/Documents/git_local/data/midas.mi2hf"
+require(data.table)
 
-# Vascular Disease: Miocardial Infarction
+load(file.path(DATA_HOME, "midas15_mi2hf_08042017.RData"))
+range(midas15$ADMDAT)
+range(midas15$DSCHDAT)
+
+# Vascular Disease: Miocardial Infarction----
 # 410 Acute myocardial infarction
 ## 410.0 Acute myocardial infarction of anterolateral wall
 ### 410.00 Acute myocardial infarction of anterolateral wall, episode of care unspecified
@@ -194,167 +225,144 @@ load(file.path(DATA_HOME, "midas15_mi2hf_04082017.RData"))
 ### 410.90 Acute myocardial infarction of unspecified site, episode of care unspecified
 ### 410.91 Acute myocardial infarction of unspecified site, initial episode of care
 ### 410.92 Acute myocardial infarction of unspecified site, subsequent episode of care
-dt1[, ami := factor(as.numeric(rowSums(dx.1.3 == "410") > 0))]
-addmargins(table(dt1$ami))
 
-# Vascular Disease: Myocardial infarction of anterolateral wall: 410.0x
-dt1[, ami.antlat := factor(as.numeric(rowSums(dx.1.4 == "4100") > 0))]
-addmargins(table(dt1$ami.antlat))
+# AMI as reason for admission (DX1)
+midas15[, ami.dx1 := (dx.1.3$DX1 == "410")]
 
-# Vascular Disease: Myocardial infarction of other anterior wall: 410.1x
-dt1[, ami.ant := factor(as.numeric(rowSums(dx.1.4 == "4101") > 0))]
-addmargins(table(dt1$ami.ant))
+midas15[, ami := (rowSums(dx.1.3 == "410") > 0)]
+addmargins(table(ami = midas15$ami,
+                 ami.dx1 = midas15$ami.dx1))
 
-# Vascular Disease: Myocardial infarction of inferolateral, inferoposterior, 
-# inferior or true posterior walls: 410.2x, 410.3x, 410.4x and 410.6x
-dt1[, ami.inf := factor(as.numeric(rowSums(data.table(rowSums(dx.1.4 == "4102", na.rm = TRUE),
-                                                      rowSums(dx.1.4 == "4103", na.rm = TRUE),
-                                                      rowSums(dx.1.4 == "4104", na.rm = TRUE),
-                                                      rowSums(dx.1.4 == "4106", na.rm = TRUE))) > 0))]
-addmargins(table(dt1$ami.inf))
+# Keep patients who was admitted for AMI from 01/01/2000 onward
+id.keep <- unique(midas15$Patient_ID[midas15$ami.dx1 &
+                                       midas15$ADMDAT >= "2000-01-01"])
+dt1 <- subset(midas15, 
+              Patient_ID %in% id.keep)
+setkey(dt1)
+length(unique(dt1$Patient_ID))
+# 1,324,383 records for 180,205 patients
 
-# Vascular Disease: Myocardial infarction of other lateral wall: 410.5x
-dt1[, ami.lat := factor(as.numeric(rowSums(dx.1.4 == "4105") > 0))]
-addmargins(table(dt1$ami.lat))
-
-# Vascular Disease: Myocardial infarction of subendocardial wall: 410.5x
-# NOTE: BEST (JK)
-dt1[, ami.subec := factor(as.numeric(rowSums(dx.1.4 == "4107") > 0))]
-addmargins(table(dt1$ami.subec))
-
-# Vascular Disease: Myocardial infarction of unspecified sites: 410.8x and 410.9x
-dt1[, ami.other := factor(as.numeric(rowSums(data.table(rowSums(dx.1.4 == "4108", na.rm = TRUE),
-                                                        rowSums(dx.1.4 == "4109", na.rm = TRUE))) > 0))]
-addmargins(table(dt1$ami.other))
-########################################
-# EXCLUSIONS 
-
-# 1. Keep only patients with MI records between 01/01/2000 and 12/31/20011 (discharge dates)
-# to ensure at least 5 year look-back and 1 year follow-up
-as.Date(max(midas$DSCHDAT), origin = "1960-01-01")
-as.Date(14610, origin = "1960-01-01")
-as.Date(18992, origin = "1960-01-01")
-id.keep <- unique(midas$PATIENT_ID[midas$DSCHDAT >= 14610 & midas$DSCHDAT <= 18992 & dt1$ami == 1])
-rec.keep <- which(midas$PATIENT_ID%in%id.keep)
-
-midas <- midas[rec.keep, ]
-dx <- dx[rec.keep, ]
-proc <- proc[rec.keep, ]
-dx.1.3 <- dx.1.3[rec.keep, ]
-dt1 <- dt1[rec.keep, ]
-
-rm(id.keep,
-   rec.keep)
-gc()
-length(unique(midas$PATIENT_ID))
-# 249,381 patients
-
-# 2. Cancers
-# See "C:\Users\ds752\Documents\svn_local\trunk\Cardiovascular\Jen Wellings HF After MI\ICD-9-CM Cancer Codes Exclude.txt" for details)
-excl <- as.character(c(140:165, 170:176, 180:239))
-excl.rec <- apply(dx.1.3[, -1, with = FALSE], 1, FUN = function(a) return(sum(a %in% excl, na.rm = TRUE) > 0))
-table(excl.rec)
-id.rm <- unique(midas$PATIENT_ID[excl.rec])
-rec.keep <- which(!(midas$PATIENT_ID %in% id.rm))
-
-midas <- midas[rec.keep, ]
-dx <- dx[rec.keep, ]
-proc <- proc[rec.keep, ]
-dx.1.3 <- dx.1.3[rec.keep, ]
-dt1 <- dt1[rec.keep, ]
-
-rm(excl,
-   excl.rec,
-   id.rm,
-   rec.keep)
+# Same for DXs and PROCs
+dx <- subset(dx, 
+             Patient_ID %in% id.keep)
+dx.1.3 <- subset(dx.1.3, 
+                Patient_ID %in% id.keep)
+proc <- subset(proc, 
+                Patient_ID %in% id.keep)
+rm(midas15)
 gc()
 
-length(unique(midas$PATIENT_ID))
-# 1,249,550 records of 184,761 patients
-
-# save(midas, file = "jen_midas_locked_04232016.RData", compress = FALSE)
-# ########################################
-# system.time(load("jen_midas_locked_04232016.RData"))
+# # Vascular Disease: Myocardial infarction of anterolateral wall: 410.0x----
+# dt1[, ami.antlat := factor(as.numeric(rowSums(dx.1.4 == "4100") > 0))]
+# addmargins(table(dt1$ami.antlat))
+# 
+# # Vascular Disease: Myocardial infarction of other anterior wall: 410.1x
+# dt1[, ami.ant := factor(as.numeric(rowSums(dx.1.4 == "4101") > 0))]
+# addmargins(table(dt1$ami.ant))
+#
+# # Vascular Disease: Myocardial infarction of inferolateral, inferoposterior, 
+# # inferior or true posterior walls: 410.2x, 410.3x, 410.4x and 410.6x
+# dt1[, ami.inf := factor(as.numeric(rowSums(data.table(rowSums(dx.1.4 == "4102", na.rm = TRUE),
+#                                                       rowSums(dx.1.4 == "4103", na.rm = TRUE),
+#                                                       rowSums(dx.1.4 == "4104", na.rm = TRUE),
+#                                                       rowSums(dx.1.4 == "4106", na.rm = TRUE))) > 0))]
+# addmargins(table(dt1$ami.inf))
+# 
+# # Vascular Disease: Myocardial infarction of other lateral wall: 410.5x
+# dt1[, ami.lat := factor(as.numeric(rowSums(dx.1.4 == "4105") > 0))]
+# addmargins(table(dt1$ami.lat))
+# 
+# # Vascular Disease: Myocardial infarction of subendocardial wall: 410.5x
+# # NOTE: BEST (JK)
+# dt1[, ami.subec := factor(as.numeric(rowSums(dx.1.4 == "4107") > 0))]
+# addmargins(table(dt1$ami.subec))
+# 
+# # Vascular Disease: Myocardial infarction of unspecified sites: 410.8x and 410.9x
+# dt1[, ami.other := factor(as.numeric(rowSums(data.table(rowSums(dx.1.4 == "4108", na.rm = TRUE),
+#                                                         rowSums(dx.1.4 == "4109", na.rm = TRUE))) > 0))]
+# addmargins(table(dt1$ami.other))
 
 ########################################
-# Conditions
+# Risk factors----
 # See "C:\Users\ds752\Documents\svn_local\trunk\Cardiovascular\MCHADS\source\final\MIDAS ICD-9 Code Counts.pptx" for details
-# 1a. Acute CFH
-dt1[, chf.acute := factor(as.numeric(rowSums(data.table(rowSums(dx == "4280", na.rm = TRUE),
-                                                        rowSums(dx == "4281", na.rm = TRUE),
-                                                        rowSums(dx == "42820", na.rm = TRUE),
-                                                        rowSums(dx == "42821", na.rm = TRUE),
-                                                        rowSums(dx == "42823", na.rm = TRUE),
-                                                        rowSums(dx == "42830", na.rm = TRUE),
-                                                        rowSums(dx == "42831", na.rm = TRUE),
-                                                        rowSums(dx == "42833", na.rm = TRUE),
-                                                        rowSums(dx == "42840", na.rm = TRUE),
-                                                        rowSums(dx == "42841", na.rm = TRUE),
-                                                        rowSums(dx == "42842", na.rm = TRUE),
-                                                        rowSums(dx == "42843", na.rm = TRUE))) > 0))]
-gc()
+# 1a. Acute CFH----
+dt1[, chf.acute := (rowSums(data.table(rowSums(dx == "4280", na.rm = TRUE),
+                                       rowSums(dx == "4281", na.rm = TRUE),
+                                       rowSums(dx == "42820", na.rm = TRUE),
+                                       rowSums(dx == "42821", na.rm = TRUE),
+                                       rowSums(dx == "42823", na.rm = TRUE),
+                                       rowSums(dx == "42830", na.rm = TRUE),
+                                       rowSums(dx == "42831", na.rm = TRUE),
+                                       rowSums(dx == "42833", na.rm = TRUE),
+                                       rowSums(dx == "42840", na.rm = TRUE),
+                                       rowSums(dx == "42841", na.rm = TRUE),
+                                       rowSums(dx == "42842", na.rm = TRUE),
+                                       rowSums(dx == "42843", na.rm = TRUE))) > 0)]
 table(dt1$chf.acute)
+gc()
 
 # 1b. Chronic CFH
-dt1[, chf.chron := factor(as.numeric(rowSums(data.table(rowSums(dx == "42822", na.rm = TRUE),
-                                                        rowSums(dx == "42832", na.rm = TRUE))) > 0))]
-gc()
+dt1[, chf.chron := (rowSums(data.table(rowSums(dx == "42822", na.rm = TRUE),
+                                       rowSums(dx == "42832", na.rm = TRUE))) > 0)]
 table(dt1$chf.chron)
+gc()
 
-# 2. Hypertension
-dt1[, hyp.401 := factor(as.numeric(rowSums(data.table(rowSums(dx == "4010", na.rm = TRUE),
-                                                      rowSums(dx == "4011", na.rm = TRUE),
-                                                      rowSums(dx == "4019", na.rm = TRUE))) > 0))]
+# 2. Hypertension----
+dt1[, hyp.401 := (rowSums(data.table(rowSums(dx == "4010", na.rm = TRUE),
+                                     rowSums(dx == "4011", na.rm = TRUE),
+                                     rowSums(dx == "4019", na.rm = TRUE))) > 0)]
 table(dt1$hyp.401)
 
-dt1[, hyp.402 := factor(as.numeric(rowSums(data.table(rowSums(dx == "40200", na.rm = TRUE),
-                                                      rowSums(dx == "40201", na.rm = TRUE),
-                                                      rowSums(dx == "40290", na.rm = TRUE),
-                                                      rowSums(dx == "40291", na.rm = TRUE))) > 0))]
+dt1[, hyp.402 := (rowSums(data.table(rowSums(dx == "40200", na.rm = TRUE),
+                                     rowSums(dx == "40201", na.rm = TRUE),
+                                     rowSums(dx == "40290", na.rm = TRUE),
+                                     rowSums(dx == "40291", na.rm = TRUE))) > 0)]
 table(dt1$hyp.402)
 
-dt1[, hyp.403 := factor(as.numeric(rowSums(data.table(rowSums(dx == "40300", na.rm = TRUE),
-                                                      rowSums(dx == "40301", na.rm = TRUE),
-                                                      rowSums(dx == "40310", na.rm = TRUE),
-                                                      rowSums(dx == "40311", na.rm = TRUE),
-                                                      rowSums(dx == "40390", na.rm = TRUE),
-                                                      rowSums(dx == "40391", na.rm = TRUE))) > 0))]
+dt1[, hyp.403 := (rowSums(data.table(rowSums(dx == "40300", na.rm = TRUE),
+                                     rowSums(dx == "40301", na.rm = TRUE),
+                                     rowSums(dx == "40310", na.rm = TRUE),
+                                     rowSums(dx == "40311", na.rm = TRUE),
+                                     rowSums(dx == "40390", na.rm = TRUE),
+                                     rowSums(dx == "40391", na.rm = TRUE))) > 0)]
 table(dt1$hyp.403)
 
-dt1[, hyp.404 := factor(as.numeric(rowSums(data.table(rowSums(dx == "40400", na.rm = TRUE),
-                                                      rowSums(dx == "40401", na.rm = TRUE),
-                                                      rowSums(dx == "40402", na.rm = TRUE),
-                                                      rowSums(dx == "40403", na.rm = TRUE),
-                                                      rowSums(dx == "40410", na.rm = TRUE),
-                                                      rowSums(dx == "40411", na.rm = TRUE),
-                                                      rowSums(dx == "40412", na.rm = TRUE),
-                                                      rowSums(dx == "40413", na.rm = TRUE),
-                                                      rowSums(dx == "40490", na.rm = TRUE),
-                                                      rowSums(dx == "40491", na.rm = TRUE),
-                                                      rowSums(dx == "40492", na.rm = TRUE),
-                                                      rowSums(dx == "40493", na.rm = TRUE))) > 0))]
+dt1[, hyp.404 := (rowSums(data.table(rowSums(dx == "40400", na.rm = TRUE),
+                                     rowSums(dx == "40401", na.rm = TRUE),
+                                     rowSums(dx == "40402", na.rm = TRUE),
+                                     rowSums(dx == "40403", na.rm = TRUE),
+                                     rowSums(dx == "40410", na.rm = TRUE),
+                                     rowSums(dx == "40411", na.rm = TRUE),
+                                     rowSums(dx == "40412", na.rm = TRUE),
+                                     rowSums(dx == "40413", na.rm = TRUE),
+                                     rowSums(dx == "40490", na.rm = TRUE),
+                                     rowSums(dx == "40491", na.rm = TRUE),
+                                     rowSums(dx == "40492", na.rm = TRUE),
+                                     rowSums(dx == "40493", na.rm = TRUE))) > 0)]
 table(dt1$hyp.404)
 
-dt1[, hyp.405 := factor(as.numeric(rowSums(data.table(rowSums(dx == "40501", na.rm = TRUE),
-                                                      rowSums(dx == "40509", na.rm = TRUE),
-                                                      rowSums(dx == "40511", na.rm = TRUE),
-                                                      rowSums(dx == "40519", na.rm = TRUE),
-                                                      rowSums(dx == "40591", na.rm = TRUE),
-                                                      rowSums(dx == "40599", na.rm = TRUE))) > 0))]
+dt1[, hyp.405 := (rowSums(data.table(rowSums(dx == "40501", na.rm = TRUE),
+                                     rowSums(dx == "40509", na.rm = TRUE),
+                                     rowSums(dx == "40511", na.rm = TRUE),
+                                     rowSums(dx == "40519", na.rm = TRUE),
+                                     rowSums(dx == "40591", na.rm = TRUE),
+                                     rowSums(dx == "40599", na.rm = TRUE))) > 0)]
 table(dt1$hyp.405)
 
-dt1[, hyp := factor(as.numeric(rowSums(dt1[, c("hyp.401",
-                                               "hyp.402",
-                                               "hyp.403",
-                                               "hyp.404",
-                                               "hyp.405"), with = FALSE] == 1) > 0))]
+dt1[, hyp := (rowSums(dt1[, c("hyp.401",
+                              "hyp.402",
+                              "hyp.403",
+                              "hyp.404",
+                              "hyp.405"), with = FALSE] == 1) > 0)]
 table(dt1$hyp)
+gc()
 
-# 3. Diabetes
-dt1[, diab := factor(as.numeric(rowSums(dx.1.3 == "250", na.rm = TRUE) > 0))]
+# 3. Diabetes----
+dt1[, diab := (rowSums(dx.1.3 == "250", na.rm = TRUE) > 0)]
 table(dt1$diab)
+gc()
 
-# 4. Chronic liver disease and cirrhosis
+# 4. Chronic liver disease and cirrhosis----
 # 571 Chronic liver disease and cirrhosis
 ## 571.0 Alcoholic fatty liver
 ## 571.1 Acute alcoholic hepatitis
@@ -369,20 +377,21 @@ table(dt1$diab)
 ### 571.6 Biliary cirrhosis
 ### 571.8 Other chronic nonalcoholic liver disease
 ### 571.9 Unspecified chronic liver disease without mention of alcohol
-dt1[, cld := factor(as.numeric(rowSums(dx.1.3 == "571", na.rm = TRUE) > 0))]
+dt1[, cld := (rowSums(dx.1.3 == "571", na.rm = TRUE) > 0)]
 table(dt1$cld)
+gc()
 
-# # 5. Acute kidney failure
+# # 5. Acute kidney failure----
 # # 584 Acute kidney failure
 # ## 584.5 Acute kidney failure with lesion of tubular necrosis
 # ## 584.6 Acute kidney failure with lesion of renal cortical necrosis
 # ## 584.7 Acute kidney failure with lesion of renal medullary [papillary] necrosis
 # ## 584.8 Acute kidney failure with other specified pathological lesion in kidney
 # ## 584.9 Acute kidney failure, unspecified
-# dt1[, akf := factor(as.numeric(rowSums(dx.1.3 == "584", na.rm = TRUE) > 0))]
+# dt1[, akf := (rowSums(dx.1.3 == "584", na.rm = TRUE) > 0)]
 # table(dt1$akf)
 
-# 5a. Chronic kidney disease
+# 5a. Chronic kidney disease----
 # 585 Chronic kidney disease (ckd)
 ## 585.1 Chronic kidney disease, Stage I
 ## 585.2 Chronic kidney disease, Stage II (mild)
@@ -391,10 +400,11 @@ table(dt1$cld)
 ## 585.5 Chronic kidney disease, Stage V
 ## 585.6 End stage renal disease
 ## 585.9 Chronic kidney disease, unspecified
-dt1[, ckf := factor(as.numeric(rowSums(dx.1.3 == "585", na.rm = TRUE) > 0))]
-table(dt1$ckf)
+dt1[, ckd := (rowSums(dx.1.3 == "585", na.rm = TRUE) > 0)]
+table(dt1$ckd)
+gc()
 
-# 6. COPD
+# 6. COPD----
 # 490 Bronchitis, not specified as acute or chronic
 # 491 Chronic bronchitis
 # 492 Emphysema
@@ -402,16 +412,17 @@ table(dt1$ckf)
 # 494 Bronchiectasis
 # 495 Extrinsic allergic alveolitis
 # 496 Chronic airway obstruction, not elsewhere classified
-dt1[, copd := factor(as.numeric(rowSums(data.table(rowSums(dx.1.3 == "490", na.rm = TRUE),
-                                                   rowSums(dx.1.3 == "491", na.rm = TRUE),
-                                                   rowSums(dx.1.3 == "492", na.rm = TRUE),
-                                                   rowSums(dx.1.3 == "493", na.rm = TRUE),
-                                                   rowSums(dx.1.3 == "494", na.rm = TRUE),
-                                                   rowSums(dx.1.3 == "495", na.rm = TRUE),
-                                                   rowSums(dx.1.3 == "496", na.rm = TRUE))) > 0))]
+dt1[, copd := (rowSums(data.table(rowSums(dx.1.3 == "490", na.rm = TRUE),
+                                  rowSums(dx.1.3 == "491", na.rm = TRUE),
+                                  rowSums(dx.1.3 == "492", na.rm = TRUE),
+                                  rowSums(dx.1.3 == "493", na.rm = TRUE),
+                                  rowSums(dx.1.3 == "494", na.rm = TRUE),
+                                  rowSums(dx.1.3 == "495", na.rm = TRUE),
+                                  rowSums(dx.1.3 == "496", na.rm = TRUE))) > 0)]
 table(dt1$copd)
+gc()
 
-# 7. Disorders of lipoid metabolism
+# 7. Disorders of lipoid metabolism----
 # 272 Disorders of lipoid metabolism
 ## 272.0 Pure hypercholesterolemia
 ## 272.1 Pure hyperglyceridemia
@@ -423,182 +434,234 @@ table(dt1$copd)
 ## 272.7 Lipidoses
 ## 272.8 Other disorders of lipoid metabolism
 ## 272.9 Unspecified disorder of lipoid metabolism
-dt1[, lipid := factor(as.numeric(rowSums(dx.1.3 == "272", na.rm = TRUE) > 0))]
+dt1[, lipid := (rowSums(dx.1.3 == "272", na.rm = TRUE) > 0)]
 table(dt1$lipid)
-
-# Merge conditions with demographic data
-dt1[, c("bdat",
-        "deathdat",
-        "age",
-        "dschdat",
-        "dschyear",
-        "sex",
-        "race") := list(midas$PATBDTE,
-                        midas$NEWDTD,
-                        floor((midas$DSCHDAT - midas$PATBDTE)/365.25),
-                        midas$DSCHDAT,
-                        substr(as.Date(midas$DSCHDAT,
-                                       origin = "1960-01-01"),
-                               start = 1,
-                               stop = 4),
-                        midas$SEX,
-                        midas$RACE)]
-
-conditions <- copy(dt1)
+gc()
 
 # Clean memory
+dt1
+summary(dt1)
 rm(dx,
-   dx.1.3,
-   dx.1.4)
+   dx.1.3)
 gc()
-conditions
-summary(conditions)
 
-########################################
-# First MI records between 01/01/2000 and 12/31/2011
-setkey(conditions, dschdat)
-setkey(conditions, id)
-conditions
-length(unique(conditions$id))
-range(conditions$dschdat)
-as.Date(14610, origin = "1960-01-01")
-as.Date(18992, origin = "1960-01-01")
+#**********************************************************
+# First MI discharge (DX1) between 01/01/2000 and 12/31/2011
+setkey(dt1, DSCHDAT, Patient_ID)
 
-conditions[, first := min(dschdat[ami == 1 & 
-                                    dschdat >= 14610 &
-                                    dschdat <= 18992],
-                          na.rm = TRUE), 
-           by = id]
+dt1[, first := min(DSCHDAT[ami.dx1 &
+                             DSCHDAT >= "2000-01-01"],
+                   na.rm = TRUE), 
+    by = Patient_ID]
 
-#  Admissions prior to MI (5 years look-back)
-conditions[, prior := (dschdat < first) & 
-             (dschdat > first - 5*365.25)]
-conditions[, id := factor(id)]
-conditions <- droplevels(conditions)
-summary(conditions)
+# Admissions prior to first MI (5 years look-back)
+dt1[, prior := ((DSCHDAT < first) & 
+                  (difftime(DSCHDAT, 
+                            first,
+                            units = "days") < 5*365.25))]
 
-# Outcomes and histories (prior to 1st MI)
-hh <- conditions[ , list(post.chf.acute.30 = factor(as.numeric(sum((chf.acute == 1) & 
-                                                                     !prior &
-                                                                     (dschdat > first) &
-                                                                     (dschdat < first + 31)) > 0), 
-                                                    levels = 0:1),
-                         post.chf.chron.30 = factor(as.numeric(sum(chf.chron == 1 & 
-                                                                     !prior &
-                                                                     dschdat > first &
-                                                                     dschdat < first + 31) > 0), 
-                                                    levels = 0:1),
-                         post.chf.acute.90 = factor(as.numeric(sum(chf.acute == 1 & 
-                                                                     !prior &
-                                                                     dschdat > first &
-                                                                     dschdat < first + 91) > 0), 
-                                                    levels = 0:1),
-                         post.chf.chron.90 = factor(as.numeric(sum(chf.chron == 1 & 
-                                                                     !prior &
-                                                                     dschdat > first &
-                                                                     dschdat < first + 91) > 0), 
-                                                    levels = 0:1),
-                         post.chf.acute.180 = factor(as.numeric(sum(chf.acute == 1 & 
-                                                                      !prior &
-                                                                      dschdat > first &
-                                                                      dschdat < first + 181) > 0), 
-                                                     levels = 0:1),
-                         post.chf.chron.180 = factor(as.numeric(sum(chf.chron == 1 & 
-                                                                      !prior &
-                                                                      dschdat > first &
-                                                                      dschdat < first + 181) > 0), 
-                                                     levels = 0:1),
-                         post.chf.acute.1y = factor(as.numeric(sum(chf.acute == 1 & 
-                                                                     !prior &
-                                                                     dschdat > first &
-                                                                     dschdat < first + 366) > 0), 
-                                                    levels = 0:1),
-                         post.chf.chron.1y = factor(as.numeric(sum(chf.chron == 1 & 
-                                                                     !prior &
-                                                                     dschdat > first &
-                                                                     dschdat < first + 366) > 0), 
-                                                    levels = 0:1),
-                         hami = factor(as.numeric(sum(ami == 1 & prior) > 0), 
-                                       levels = 0:1),
-                         hami.antlat = factor(as.numeric(sum(ami.antlat == 1 & prior) > 0), 
-                                              levels = 0:1),
-                         hami.ant = factor(as.numeric(sum(ami.ant == 1 & prior) > 0), 
-                                           levels = 0:1),
-                         hami.inf = factor(as.numeric(sum(ami.inf == 1 & prior) > 0), 
-                                           levels = 0:1),
-                         hami.lat = factor(as.numeric(sum(ami.lat == 1 & prior) > 0), 
-                                           levels = 0:1),
-                         hami.subec = factor(as.numeric(sum(ami.subec == 1 & prior) > 0), 
-                                             levels = 0:1),
-                         hami.other = factor(as.numeric(sum(ami.other == 1 & prior) > 0), 
-                                             levels = 0:1),
-                         hchf.acute = factor(as.numeric(sum(chf.acute == 1 & prior) > 0), 
-                                             levels = 0:1),
-                         hchf.chron = factor(as.numeric(sum(chf.chron == 1 & prior) > 0), 
-                                             levels = 0:1),
-                         hhyp.401 = factor(as.numeric(sum(hyp.401 == 1 & prior) > 0), 
-                                           levels = 0:1),
-                         hhyp.402 = factor(as.numeric(sum(hyp.402 == 1 & prior) > 0), 
-                                           levels = 0:1),
-                         hhyp.403 = factor(as.numeric(sum(hyp.403 == 1 & prior) > 0), 
-                                           levels = 0:1),
-                         hhyp.404 = factor(as.numeric(sum(hyp.404 == 1 & prior) > 0), 
-                                           levels = 0:1),
-                         hhyp.405 = factor(as.numeric(sum(hyp.405 == 1 & prior) > 0), 
-                                           levels = 0:1),
-                         hhyp = factor(as.numeric(sum(hyp == 1 & prior) > 0), 
-                                       levels = 0:1),
-                         hdiab = factor(as.numeric(sum(diab == 1 & prior) > 0), 
-                                        levels = 0:1),
-                         hcld = factor(as.numeric(sum(cld == 1 & prior) > 0), 
-                                       levels = 0:1),
-                         hckf = factor(as.numeric(sum(ckf == 1 & prior) > 0), 
-                                       levels = 0:1),
-                         hcopd = factor(as.numeric(sum(copd == 1 & prior) > 0), 
-                                        levels = 0:1),
-                         hlipid = factor(as.numeric(sum(lipid == 1 & prior) > 0), 
-                                         levels = 0:1)),
-                  by = id]
+# First AF admissions
+dt1[, current := (DSCHDAT == first)]
+
+# Summary
+sum(dt1$prior)
+sum(dt1$current)
+dt1 <- droplevels(dt1)
+summary(dt1)
+save(dt1, 
+     file = file.path(DATA_HOME, "dt1_04152017.RData"),
+     compress = FALSE)
+
+#**********************************************************
+# PART II----
+DATA_HOME <- "C:/Users/ds752/Documents/git_local/data/midas.pci"
+require(data.table)
+require(ggplot2)
+
+load(file.path(DATA_HOME, "dt1_04152017.RData"))
+
+# Outcomes and histories (prior to 1st PCI)----
+system.time(
+  hh <- dt1[, list(ADMDAT,
+                   DSCHDAT,
+                   patbdte,
+                   NEWDTD,
+                   HOSP,
+                   SEX,
+                   PRIME,
+                   RACE,
+                   HISPAN,
+                   AGE,
+                   dschyear = as.numeric(substr(DSCHDAT, 1, 4)),
+                   first,
+                   prior,
+                   current,
+                   ami.dx1,
+                   ami,
+                   readm.30 = sum(!(prior | current) &
+                                    (difftime(ADMDAT,
+                                              first,
+                                              units = "days") >= 0) &
+                                    (difftime(ADMDAT,
+                                              first,
+                                              units = "days") < 31) &
+                                    (is.na(NEWDTD) | (difftime(NEWDTD,
+                                                               ADMDAT,
+                                                               units = "days")) >= 0)) > 0,
+                   post.chf.acute.30 = sum(chf.acute & 
+                                             !(prior | current) &
+                                             (difftime(ADMDAT,
+                                                       first,
+                                                       units = "days") >= 0) &
+                                             (difftime(ADMDAT,
+                                                       first,
+                                                       units = "days") < 31) &
+                                             (is.na(NEWDTD) | (difftime(NEWDTD,
+                                                                        ADMDAT,
+                                                                        units = "days")) >= 0)) > 0,
+                   dead.30 = sum(!(prior | current) &
+                                   (difftime(NEWDTD,
+                                             first,
+                                             units = "days") > 0) &
+                                   (difftime(NEWDTD,
+                                             first,
+                                             units = "days") < 31),
+                                 na.rm = TRUE) > 0,
+                   readm.90 = sum(!(prior | current) &
+                                    (difftime(ADMDAT,
+                                              first,
+                                              units = "days") >= 0) &
+                                    (difftime(ADMDAT,
+                                              first,
+                                              units = "days") < 91) &
+                                    (is.na(NEWDTD) | (difftime(NEWDTD,
+                                                               ADMDAT,
+                                                               units = "days")) >= 0)) > 0,
+                   post.chf.acute.90 = sum(chf.acute & 
+                                             !(prior | current) &
+                                             (difftime(ADMDAT,
+                                                       first,
+                                                       units = "days") >= 0) &
+                                             (difftime(ADMDAT,
+                                                       first,
+                                                       units = "days") < 91) &
+                                             (is.na(NEWDTD) | (difftime(NEWDTD,
+                                                                        ADMDAT,
+                                                                        units = "days")) >= 0)) > 0,
+                   dead.90 = sum(!(prior | current) &
+                                   (difftime(NEWDTD,
+                                             first,
+                                             units = "days") > 0) &
+                                   (difftime(NEWDTD,
+                                             first,
+                                             units = "days") < 91),
+                                 na.rm = TRUE) > 0,
+                   readm.180 = sum(!(prior | current) &
+                                    (difftime(ADMDAT,
+                                              first,
+                                              units = "days") >= 0) &
+                                    (difftime(ADMDAT,
+                                              first,
+                                              units = "days") < 181) &
+                                    (is.na(NEWDTD) | (difftime(NEWDTD,
+                                                               ADMDAT,
+                                                               units = "days")) >= 0)) > 0,
+                   post.chf.acute.180 = sum(chf.acute & 
+                                             !(prior | current) &
+                                             (difftime(ADMDAT,
+                                                       first,
+                                                       units = "days") >= 0) &
+                                             (difftime(ADMDAT,
+                                                       first,
+                                                       units = "days") < 181) &
+                                             (is.na(NEWDTD) | (difftime(NEWDTD,
+                                                                        ADMDAT,
+                                                                        units = "days")) >= 0)) > 0,
+                   dead.180 = sum(!(prior | current) &
+                                   (difftime(NEWDTD,
+                                             first,
+                                             units = "days") > 0) &
+                                   (difftime(NEWDTD,
+                                             first,
+                                             units = "days") < 181),
+                                 na.rm = TRUE) > 0,
+                   readm.1y = sum(!(prior | current) &
+                                    (difftime(ADMDAT,
+                                              first,
+                                              units = "days") >= 0) &
+                                    (difftime(ADMDAT,
+                                              first,
+                                              units = "days") < 366) &
+                                    (is.na(NEWDTD) | (difftime(NEWDTD,
+                                                               ADMDAT,
+                                                               units = "days")) >= 0)) > 0,
+                   post.chf.acute.1y = sum(chf.acute & 
+                                             !(prior | current) &
+                                             (difftime(ADMDAT,
+                                                       first,
+                                                       units = "days") >= 0) &
+                                             (difftime(ADMDAT,
+                                                       first,
+                                                       units = "days") < 366) &
+                                             (is.na(NEWDTD) | (difftime(NEWDTD,
+                                                                        ADMDAT,
+                                                                        units = "days")) >= 0)) > 0,
+                   dead.1y = sum(!(prior | current) &
+                                   (difftime(NEWDTD,
+                                             first,
+                                             units = "days") > 0) &
+                                   (difftime(NEWDTD,
+                                             first,
+                                             units = "days") < 366),
+                                 na.rm = TRUE) > 0,
+                   hami.dx1 = (sum(ami.dx1 & prior) > 0),
+                   hami = (sum(ami & prior) > 0),
+                   
+                   hchf.acute = (sum(chf.acute & prior) > 0),
+                   hchf.chron = (sum(chf.chron & prior) > 0), 
+                   hhyp.401 = (sum(hyp.401 & prior) > 0),
+                   hhyp.402 = (sum(hyp.402 & prior) > 0), 
+                   hhyp.403 = (sum(hyp.403 & prior) > 0),
+                   hhyp.404 = (sum(hyp.404 & prior) > 0), 
+                   hhyp.405 = (sum(hyp.405 & prior) > 0),
+                   hhyp = (sum(hyp & prior) > 0), 
+                   hdiab = (sum(diab & prior) > 0), 
+                   hcld = (sum(cld & prior) > 0),
+                   hckd = (sum(ckd & prior) > 0),
+                   hcopd = (sum(copd & prior) > 0),
+                   hlipid = (sum(lipid & prior) > 0)), 
+            by = Patient_ID]
+)
 summary(hh)
+gc()
 
-# Remove patients with history of AMI
-hh$id <- as.character(hh$id)
-id.keep <- hh$id[hh$hami == 0]
-hh <- subset(hh, subset = hh$id %in% id.keep)
-summary(hh)
+# Separate first MI admission
+# Remove all cases with no MI records
+case <- unique(subset(hh, current & ami.dx1))
 
-# Remove AMIs
-hh$hami <- hh$hami.antlat <- hh$hami.ant <- hh$hami.inf <- hh$hami.lat <- hh$hami.subec <- hh$hami.other <- NULL
-hh
-
-# Merge AMI visit with histories and outcomes
-ami.visit <- subset(conditions, ami == 1 & dschdat == first)
-
-# Remove duplicates
-ami.visit <- unique(ami.visit)
-setkey(ami.visit, id)
-ami.visit$id <- as.character(ami.visit$id)
-
-# NOTE: there are 340 subjects with conflicting records: REMOVE
-sum(duplicated(ami.visit$id))
-id.dupl <- ami.visit$id[duplicated(ami.visit$id)]
-subset(ami.visit, id %in% id.dupl)
-
-ami.visit <- subset(ami.visit, !(id %in% id.dupl))
-
-# Merge all
-case <- merge(ami.visit, hh, by = "id")
-
-# Remove 'first' and 'prior'
-case$first <- NULL
-case$prior <- NULL
+# If the are are more than 1 records of 1st MI admissions per person,
+nrow(case) - length(unique(case$Patient_ID))
+# Remove 546 patient with duplicate records
+case <- case[!(Patient_ID %in% Patient_ID[duplicated(Patient_ID)]), ]
 summary(case)
 
-# Remove subjects that died during at 1st MI admission, if any
-case <- droplevels(subset(case, (is.na(deathdat) | dschdat <= deathdat)))
-summary(case)
+# Remove patients that died at 1st MI discharge
+case <- droplevels(subset(case, (is.na(NEWDTD) | NEWDTD != first)))
 
-#############################################
-# Save all
-save(case, file = "tmp/jen_case_07092016.RData", compress = FALSE)
-case
+# Remove anyone with history of MI
+case <- droplevels(subset(case, !hami))
+case[, hami.dx1 := NULL]
+case[, hami := NULL]
+
+# MI discharges
+t1 <- table(case$dschyear,
+            case$ami.dx1)
+t1
+plot(t1[, 1] ~ as.numeric(rownames(t1)), 
+     type = "b",
+     xlab = "Year",
+     ylab = "Number of MI Discharges (DX1 Only)")
+
+save(case, 
+     file = file.path(DATA_HOME, "case_04152017.RData"),
+     compress = FALSE)
