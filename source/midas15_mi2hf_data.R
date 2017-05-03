@@ -22,6 +22,14 @@ midas15[, TOTBIL := NULL]
 midas15[, DRG := NULL]
 midas15[, RECDID := NULL]
 midas15[, DSHYR := NULL]
+midas15[, PROC1 := NULL]
+midas15[, PROC2 := NULL]
+midas15[, PROC3 := NULL]
+midas15[, PROC4 := NULL]
+midas15[, PROC5 := NULL]
+midas15[, PROC6 := NULL]
+midas15[, PROC7 := NULL]
+midas15[, PROC8 := NULL]
 midas15[, PRDTE1 := NULL]
 midas15[, PRDTE2 := NULL]
 midas15[, PRDTE3 := NULL]
@@ -56,6 +64,7 @@ midas15 <- subset(midas15,
 summary(midas15$patbdte)
 
 # Keep only records from 01/01/1995 (admission dates)
+summary(midas15$ADMDAT)
 midas15 <- subset(midas15, ADMDAT >= "1995-01-11")
 
 # Remove records with discarge date before admission
@@ -100,13 +109,20 @@ midas15[, RACE := NULL]
 names(midas15)[ncol(midas15)] <- "RACE"
 
 # Primary insurance----
-midas15$PRIME[!(midas15$PRIME %in% c("medicaid",
-                                     "medicare",
-                                     "self pay" ,
-                                     "COMMERCIAL"))] <- "Other"
-midas15$PRIME[midas15$PRIME %in% c("medicaid",
-                                   "self pay")] <- "medicaid/self-pay"
-table(midas15$PRIME)
+write.csv(100*table(midas15$PRIME)/nrow(midas15), 
+          file = "tmp/prime.csv")
+midas15$PRIME[(midas15$PRIME %in% c("BLUE CROSS PLANS",
+                                    "HMO"))] <- "COMMERCIAL"
+
+midas15$PRIME[!(midas15$PRIME %in% c("medicare",
+                                     "COMMERCIAL"))] <- "medicaid/self-pay/other"
+midas15$PRIME <- factor(midas15$PRIME,
+                        levels = c("medicare",
+                                   "COMMERCIAL",
+                                   "medicaid/self-pay/other"))
+round(100*addmargins(table(midas15$PRIME)/nrow(midas15)), 1)
+# medicare | COMMERCIAL | medicaid/self-pay/other | Sum 
+# 52.7     | 39.4       | 7.9                     | 100.0
 gc()
 
 # Hispanic----
@@ -130,8 +146,6 @@ gc()
 setkey(midas15,
        Patient_ID,
        ADMDAT)
-midas15[, NDX := 1:.N,
-        by = Patient_ID]
 
 #**********************************************************
 # Separate diagnostic codes (DX1:DX9)
@@ -158,28 +172,26 @@ rec.keep <- which(!(midas15$Patient_ID %in% id.rm))
 
 midas15 <- midas15[rec.keep, ]
 dx <- dx[rec.keep, ]
-proc <- proc[rec.keep, ]
 dx.1.3 <- dx.1.3[rec.keep, ]
-dt1 <- dt1[rec.keep, ]
 
-rm(excl.rec,
-   id.rm,
-   rec.keep)
-gc()
-
-# Procedure codes (PROC1:PROC9)----
-proc <- midas15[, .(Patient_ID, PROC1, PROC2, PROC3, PROC4, PROC5, PROC6, PROC7, PROC8)]
-
-save(midas15, dx, dx.1.3, proc, 
-     file = file.path(DATA_HOME, "midas15_mi2hf_08042017.RData"), 
+# Save
+save(midas15, 
+     dx, 
+     dx.1.3, 
+     file = file.path(DATA_HOME,
+                      "midas15_mi2hf_02052017.RData"), 
      compress = FALSE)
+
+# Clean workspace
+rm(list = ls())
+gc()
 
 #**********************************************************
 # PART II----
 DATA_HOME <- "C:/Users/ds752/Documents/git_local/data/midas.mi2hf"
 require(data.table)
 
-load(file.path(DATA_HOME, "midas15_mi2hf_08042017.RData"))
+load(file.path(DATA_HOME, "midas15_mi2hf_02052017.RData"))
 range(midas15$ADMDAT)
 range(midas15$DSCHDAT)
 
@@ -242,12 +254,10 @@ setkey(dt1)
 length(unique(dt1$Patient_ID))
 # 1,324,383 records for 180,205 patients
 
-# Same for DXs and PROCs
+# Same for DXs
 dx <- subset(dx, 
              Patient_ID %in% id.keep)
 dx.1.3 <- subset(dx.1.3, 
-                Patient_ID %in% id.keep)
-proc <- subset(proc, 
                 Patient_ID %in% id.keep)
 rm(midas15)
 gc()
@@ -287,7 +297,7 @@ gc()
 # See "C:\Users\ds752\Documents\svn_local\trunk\Cardiovascular\MCHADS\source\final\MIDAS ICD-9 Code Counts.pptx" for details
 # 1a. Acute CFH----
 dt1[, chf.acute := (rowSums(data.table(rowSums(dx == "4280", na.rm = TRUE),
-                                       rowSums(dx == "4281", na.rm = TRUE),
+                                       rowSums(dx == "4280", na.rm = TRUE),
                                        rowSums(dx == "42820", na.rm = TRUE),
                                        rowSums(dx == "42821", na.rm = TRUE),
                                        rowSums(dx == "42823", na.rm = TRUE),
@@ -301,11 +311,28 @@ dt1[, chf.acute := (rowSums(data.table(rowSums(dx == "4280", na.rm = TRUE),
 table(dt1$chf.acute)
 gc()
 
-# 1b. Chronic CFH
-dt1[, chf.chron := (rowSums(data.table(rowSums(dx == "42822", na.rm = TRUE),
-                                       rowSums(dx == "42832", na.rm = TRUE))) > 0)]
-table(dt1$chf.chron)
+# 1c. Chronic CFH in DX1----
+dt1[, chf.acute.dx1 := (dx$DX1 %in% c("4280",
+                                      "4280",
+                                      "42820",
+                                      "42821",
+                                      "42823",
+                                      "42830",
+                                      "42831",
+                                      "42833",
+                                      "42840",
+                                      "42841",
+                                      "42842",
+                                      "42843"))]
+table(chf.acute = dt1$chf.acute,
+      chf.acute.dx1 = dt1$chf.acute.dx1)
 gc()
+
+# # 1c. Chronic CFH
+# dt1[, chf.chron := (rowSums(data.table(rowSums(dx == "42822", na.rm = TRUE),
+#                                        rowSums(dx == "42832", na.rm = TRUE))) > 0)]
+# table(dt1$chf.chron)
+# gc()
 
 # 2. Hypertension----
 dt1[, hyp.401 := (rowSums(data.table(rowSums(dx == "4010", na.rm = TRUE),
@@ -436,11 +463,10 @@ gc()
 ## 272.9 Unspecified disorder of lipoid metabolism
 dt1[, lipid := (rowSums(dx.1.3 == "272", na.rm = TRUE) > 0)]
 table(dt1$lipid)
-gc()
-
-# Clean memory
 dt1
 summary(dt1)
+
+# Clean memory
 rm(dx,
    dx.1.3)
 gc()
@@ -469,11 +495,11 @@ sum(dt1$current)
 dt1 <- droplevels(dt1)
 summary(dt1)
 save(dt1, 
-     file = file.path(DATA_HOME, "dt1_04152017.RData"),
+     file = file.path(DATA_HOME, "dt1_02052017.RData"),
      compress = FALSE)
 
 #**********************************************************
-# PART II----
+# PART III----
 DATA_HOME <- "C:/Users/ds752/Documents/git_local/data/midas.pci"
 require(data.table)
 require(ggplot2)
@@ -508,7 +534,7 @@ system.time(
                                     (is.na(NEWDTD) | (difftime(NEWDTD,
                                                                ADMDAT,
                                                                units = "days")) >= 0)) > 0,
-                   post.chf.acute.30 = sum(chf.acute & 
+                   post.chf.acute.dx1.30 = sum(chf.acute.dx1 & 
                                              !(prior | current) &
                                              (difftime(ADMDAT,
                                                        first,
@@ -537,7 +563,7 @@ system.time(
                                     (is.na(NEWDTD) | (difftime(NEWDTD,
                                                                ADMDAT,
                                                                units = "days")) >= 0)) > 0,
-                   post.chf.acute.90 = sum(chf.acute & 
+                   post.chf.acute.dx1.90 = sum(chf.acute.dx1 & 
                                              !(prior | current) &
                                              (difftime(ADMDAT,
                                                        first,
@@ -566,7 +592,7 @@ system.time(
                                     (is.na(NEWDTD) | (difftime(NEWDTD,
                                                                ADMDAT,
                                                                units = "days")) >= 0)) > 0,
-                   post.chf.acute.180 = sum(chf.acute & 
+                   post.chf.acute.dx1.180 = sum(chf.acute.dx1 & 
                                              !(prior | current) &
                                              (difftime(ADMDAT,
                                                        first,
@@ -595,7 +621,7 @@ system.time(
                                     (is.na(NEWDTD) | (difftime(NEWDTD,
                                                                ADMDAT,
                                                                units = "days")) >= 0)) > 0,
-                   post.chf.acute.1y = sum(chf.acute & 
+                   post.chf.acute.dx1.1y = sum(chf.acute.dx1 & 
                                              !(prior | current) &
                                              (difftime(ADMDAT,
                                                        first,
@@ -618,7 +644,6 @@ system.time(
                    hami = (sum(ami & prior) > 0),
                    
                    hchf.acute = (sum(chf.acute & prior) > 0),
-                   hchf.chron = (sum(chf.chron & prior) > 0), 
                    hhyp.401 = (sum(hyp.401 & prior) > 0),
                    hhyp.402 = (sum(hyp.402 & prior) > 0), 
                    hhyp.403 = (sum(hyp.403 & prior) > 0),
@@ -662,6 +687,10 @@ plot(t1[, 1] ~ as.numeric(rownames(t1)),
      xlab = "Year",
      ylab = "Number of MI Discharges (DX1 Only)")
 
+write.csv(data.table(var = names(case)),
+          file = "tmp/t1.csv",
+          row.names = FALSE)
+
 save(case, 
-     file = file.path(DATA_HOME, "case_04152017.RData"),
+     file = file.path(DATA_HOME, "case_02052017.RData"),
      compress = FALSE)

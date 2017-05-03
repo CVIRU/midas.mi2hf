@@ -3,52 +3,56 @@
 # Last modified: 07/09/2016
 # Project: HF after first MI, Jen Wellings
 #**********************************************************
-# PART I----
+# PART I: Load data----
 DATA_HOME <- "C:/Users/ds752/Documents/git_local/data/midas.mi2hf"
 require(data.table)
 require(ggplot2)
 
-load(file.path(DATA_HOME, "case_04152017.RData"))
+load(file.path(DATA_HOME, "case_02052017.RData"))
 
-roc.plot <- function(mod.name, main) {
-  c.stat <- list()
-  for (i in 1:length(mod.name)) {
-    out <- eval(parse(text = paste("roc(predictions = predict(",
-                                   mod.name[i],
-                                   ", type = 'response'), labels = factor(",
-                                   mod.name[i],
-                                   "$y))",
-                                   sep = "")))
-    if (i == 1) {
-      plot(out,
-           col=i,
-           lty = i,
-           lwd=2,
-           main = main)
-    } else {
-      plot(out,
-           add = T,
-           col = i,
-           lty = i,
-           lwd = 2)
-    }
-    
-    c.stat[[i]] <- auc(out)
-  }
-  c.stat <- round(do.call("c", c.stat), 3)
-  c.stat
-  
-  legend("bottomright",
-         legend = paste(mod.name, ", c stat =", c.stat),
-         col = 1:length(c.stat),
-         lty = 1:length(c.stat))
-}
+# Make age by decade
+case$decade <- floor(case$AGE/10)
+summary(case$decade)
+
+# roc.plot <- function(mod.name, main) {
+#   c.stat <- list()
+#   for (i in 1:length(mod.name)) {
+#     out <- eval(parse(text = paste("roc(predictions = predict(",
+#                                    mod.name[i],
+#                                    ", type = 'response'), labels = factor(",
+#                                    mod.name[i],
+#                                    "$y))",
+#                                    sep = "")))
+#     if (i == 1) {
+#       plot(out,
+#            col=i,
+#            lty = i,
+#            lwd=2,
+#            main = main)
+#     } else {
+#       plot(out,
+#            add = T,
+#            col = i,
+#            lty = i,
+#            lwd = 2)
+#     }
+#     
+#     c.stat[[i]] <- auc(out)
+#   }
+#   c.stat <- round(do.call("c", c.stat), 3)
+#   c.stat
+#   
+#   legend("bottomright",
+#          legend = paste(mod.name, ", c stat =", c.stat),
+#          col = 1:length(c.stat),
+#          lty = 1:length(c.stat))
+# }
 
 #**********************************************************
 # PART II: Rates----
 # 30 days----
 t1 <- addmargins(table(case$dschyear,
-            case$post.chf.acute.30))
+            case$post.chf.acute.dx1.30))
 t1 <- data.table(year = rownames(t1),
                  hf30 = t1[, 2],
                  N = t1[ , 3])
@@ -58,16 +62,9 @@ t1[, rate := round(100*hf30/N, 2)]
 t1 <- t1[-c((nrow(t1) - 1):nrow(t1)),]
 t1$year <- as.numeric(t1$year)
 
-plot(t1$rate ~ t1$year,
-     type = "b",
-     xlab = "Year",
-     ylab = "Percent Readmitted",
-     main = "Rate of 30-Day HF Readmission After AMI",
-     ylim = c(0, 25))
-
 # 90 days----
 t2 <- addmargins(table(case$dschyear,
-                       case$post.chf.acute.90))
+                       case$post.chf.acute.dx1.90))
 t2 <- data.table(year = rownames(t2),
                  hf90 = t2[, 2],
                  N = t2[ , 3])
@@ -77,16 +74,9 @@ t2[, rate := round(100*hf90/N, 2)]
 t2 <- t2[-c((nrow(t2) - 1):nrow(t2)),]
 t2$year <- as.numeric(t2$year)
 
-plot(t2$rate ~ t2$year,
-     type = "b",
-     xlab = "Year",
-     ylab = "Percent Readmitted",
-     main = "Rate of 90-Day HF Readmission After AMI",
-     ylim = c(0, 25))
-
 # 180 days----
 t3 <- addmargins(table(case$dschyear,
-                       case$post.chf.acute.180))
+                       case$post.chf.acute.dx1.180))
 t3 <- data.table(year = rownames(t3),
                  hf180 = t3[, 2],
                  N = t3[ , 3])
@@ -96,16 +86,9 @@ t3[, rate := round(100*hf180/N, 2)]
 t3 <- t3[-c((nrow(t3) - 1):nrow(t3)),]
 t3$year <- as.numeric(t3$year)
 
-plot(t3$rate ~ t3$year,
-     type = "b",
-     xlab = "Year",
-     ylab = "Percent Readmitted",
-     main = "Rate of 180-Day HF Readmission After AMI",
-     ylim = c(0, 25))
-
 # 1 year----
 t4 <- addmargins(table(case$dschyear,
-                       case$post.chf.acute.1y))
+                       case$post.chf.acute.dx1.1y))
 t4 <- data.table(year = rownames(t4),
                  hf1y = t4[, 2],
                  N = t4[ , 3])
@@ -115,13 +98,6 @@ t4[, rate := round(100*hf1y/N, 2)]
 t4 <- t4[-c((nrow(t4) - 1):nrow(t4)),]
 t4$year <- as.numeric(t4$year)
 
-plot(t4$rate ~ t4$year,
-     type = "b",
-     xlab = "Year",
-     ylab = "Percent Readmitted",
-     main = "Rate of 1-Year HF Readmission After AMI",
-     ylim = c(0, 25))
-
 # Combine and plot----
 tt1 <- data.table(year = t1$year,
                   rate.30 = t1$rate,
@@ -129,107 +105,106 @@ tt1 <- data.table(year = t1$year,
                   rate.180 = t3$rate,
                   rate.1y = t4$rate)
 tt1
+write.csv(tt1, 
+          file = "tmp/hf_after_ami_rates.csv",
+          row.names = FALSE)
 plot(tt1)
 
 tt1.l <- melt.data.table(data = tt1, 
                          id.vars = "year",
                          measure.vars = c(2:5))
+tt1.l$variable <- factor(tt1.l$variable,
+                         levels = rev(levels(tt1.l$variable)))
 
-
+# Plot HF rates over time----
+tiff(filename = "tmp/hf_after_ami_rates.tiff",
+     height = 5,
+     width = 6,
+     units = 'in',
+     res = 300,
+     compression = "lzw+p")
 ggplot(tt1.l,
        aes(x = year,
            y = value,
            colour = variable,
            group = variable)) +
   geom_line(size = 1) +
-  geom_point(size = 3) +
+  geom_point(size = 2) +
+  geom_hline(yintercept = 0,
+             linetype = "dashed") +
+  # geom_vline(xintercept = 2000,
+  #            linetype = "dashed") +
   theme(axis.text.x = element_text(angle = 45,
                                    hjust = 1)) +
   scale_x_continuous("Year",
                      breaks = unique(tt1.l$year),
                      labels = unique(tt1.l$year)) +
-  scale_y_continuous("Rate (%)") +
-  scale_colour_manual(label = c("30 Days",
-                                "90 Days",
+  scale_y_continuous("Rate (%)",
+                     limits = c(0, 8.5)) +
+  scale_colour_manual(label = c("1 Year",
                                 "180 Days",
-                                "1 Year"),
+                                "90 Days",
+                                "30 Days"),
                       values = unique(tt1.l$variable)) +
-  ggtitle("HF Admission After AMI") +
+  ggtitle("HF Admission After AMI Discharge") +
   guides(colour = guide_legend(title = "Follow-up"))
-
+graphics.off()
 
 #**********************************************************
-#**********************************************************
-#**********************************************************
-# OLD CODE: CONTIMUE HERE! (04/15/2017)
-# Make age by decade
-case$decade <- floor(case$AGE/10)
-
-# Risk factors on or before 1st AMI
-case$hchf.acute.2 <- factor(as.numeric(case$hchf.acute == 1 | case$chf.acute == 1), levels = 0:1) 
-case$hhyp.2 <- factor(as.numeric(case$hhyp == 1 | case$hyp == 1), levels = 0:1)  
-case$hdiab.2 <- factor(as.numeric(case$hdiab == 1 | case$diab == 1), levels = 0:1)  
-case$hcld.2 <- factor(as.numeric(case$hcld == 1 | case$cld == 1), levels = 0:1)  
-case$hckf.2 <- factor(as.numeric(case$hckf == 1 | case$ckf == 1), levels = 0:1)  
-case$hcopd.2 <- factor(as.numeric(case$hcopd == 1 | case$copd == 1), levels = 0:1)  
-case$hlipid.2 <- factor(as.numeric(case$hlipid == 1 | case$lipid == 1), levels = 0:1) 
-summary(case)
-
-########################################
-# MODELS
+# PART III: Models----
 s1 <- list()
 
 # Model1.30: Acute CHF, 30 days
-m1.30 <- glm(post.chf.acute.30 ~ decade + 
-               sex +
-               as.numeric(dschyear) + 
-               hhyp.2 + 
-               hdiab.2 + 
-               hckf.2 + 
-               hcopd.2 +
-               hlipid.2,
+m1.30 <- glm(post.chf.acute.dx1.30 ~ decade + 
+               SEX +
+               dschyear + 
+               hhyp + 
+               hdiab + 
+               hckd + 
+               hcopd +
+               hlipid,
              family = binomial(logit),
              data  = case)
 s1$d30 <- summary(m1.30)
 s1$d30
 
 # Model1.90: Acute CHF, 90 days
-m1.90 <- glm(post.chf.acute.90 ~ decade + 
-               sex +
-               as.numeric(dschyear) + 
-               hhyp.2 + 
-               hdiab.2 + 
-               hckf.2 + 
-               hcopd.2 +
-               hlipid.2,
+m1.90 <- glm(post.chf.acute.dx1.90 ~ decade + 
+               SEX +
+               dschyear + 
+               hhyp + 
+               hdiab + 
+               hckd + 
+               hcopd +
+               hlipid,
              family = binomial(logit),
              data  = case)
 s1$d90 <- summary(m1.90)
 s1$d90
 
 # Model1.180: Acute CHF, 180 days
-m1.180 <- glm(post.chf.acute.180 ~ decade + 
-               sex +
-               as.numeric(dschyear) + 
-                hhyp.2 + 
-                hdiab.2 + 
-                hckf.2 + 
-                hcopd.2 +
-                hlipid.2,
-             family = binomial(logit),
-             data  = case)
+m1.180 <- glm(post.chf.acute.dx1.180 ~ decade + 
+                SEX +
+                dschyear + 
+                hhyp + 
+                hdiab + 
+                hckd + 
+                hcopd +
+                hlipid,
+              family = binomial(logit),
+              data  = case)
 s1$d180 <- summary(m1.180)
 s1$d180
 
 # Model1.1y: Acute CHF, 1 year
-m1.1y <- glm(post.chf.acute.1y ~ decade + 
-               sex +
-               as.numeric(dschyear) + 
-               hhyp.2 + 
-               hdiab.2 + 
-               hckf.2 + 
-               hcopd.2 +
-               hlipid.2,
+m1.1y <- glm(post.chf.acute.dx1.1y ~ decade + 
+               SEX +
+               dschyear + 
+               hhyp + 
+               hdiab + 
+               hckd + 
+               hcopd +
+               hlipid,
              family = binomial(logit),
              data  = case)
 s1$y1 <- summary(m1.1y)
@@ -241,7 +216,7 @@ t.col.names <- c("Age (by Decade)",
                  "Discharge Year",
                  "History of Hypertension",
                  "History of Diabetes",
-                 "History of Chronic Kidney Failure",
+                 "History of Chronic Kidney Disease",
                  "History of COPD",
                  "History of Disorder of Lipoid Metabolism")
 
@@ -273,18 +248,21 @@ tm1$names <- factor(tm1$names, levels = unique(tm1$names))
 tm1$cutoff <- factor(as.character(tm1$cutoff),
                      levels = c("30 Days", "90 Days", "180 Days",  "1 Year"))
 tm1
-write.csv(tm1, file = "tmp/tm1.csv")
-
-tiff(filename = "tmp/plot1.tiff",
-     width = 14.58,
-     height = 6.77,
-     units = "in",
-     res = 400)
+write.csv(tm1, 
+          file = "tmp/hf_after_ami_or.csv",
+          row.names = FALSE)
+# Plot OR----
+tiff(filename = "tmp/hf_after_ami_or.tiff",
+     height = 8,
+     width = 8,
+     units = 'in',
+     res = 300,
+     compression = "lzw+p")
 ggplot(tm1, 
        aes(x = names, 
            y = m1.cf)) +
   facet_wrap( ~ cutoff, 
-             ncol = 4) + 
+             ncol = 2) + 
   geom_hline(yintercept = 1,
              colour = "grey",
              size = 1.1,
@@ -308,6 +286,7 @@ ggplot(tm1,
         text = element_text(size = 12))
 graphics.off()
 
+CONTINUE HERE 02/05/2017!!!!
 ########################################
 t3.1 <- addmargins(table(case$dschyear, case$post.chf.acute.30))
 t3 <- data.table(Year = rownames(t3.1),
