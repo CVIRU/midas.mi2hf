@@ -400,7 +400,146 @@ ggplot(tm1,
 graphics.off()
 
 #**********************************************************
-# PART V: Extended Models----
+# PART V: Models, no acute CHF prior or at 1st AMI admission----
+tmp <- droplevels(subset(case,
+                         !(hchf.acute | chf.acute.current)))
+summary(tmp)
+s1 <- list()
+
+# Model1.30: Acute CHF, 30 days
+m1.30 <- glm(post.chf.acute.dx1.30 ~ decade + 
+               SEX +
+               dschyear + 
+               hhyp + 
+               hdiab + 
+               hckd + 
+               hcopd +
+               hlipid,
+             family = binomial(logit),
+             data = tmp)
+s1$d30 <- summary(m1.30)
+s1$d30
+
+# Model1.90: Acute CHF, 90 days
+m1.90 <- glm(post.chf.acute.dx1.90 ~ decade + 
+               SEX +
+               dschyear + 
+               hhyp + 
+               hdiab + 
+               hckd + 
+               hcopd +
+               hlipid,
+             family = binomial(logit),
+             data = tmp)
+s1$d90 <- summary(m1.90)
+s1$d90
+
+# Model1.180: Acute CHF, 180 days
+m1.180 <- glm(post.chf.acute.dx1.180 ~ decade + 
+                SEX +
+                dschyear + 
+                hhyp + 
+                hdiab + 
+                hckd + 
+                hcopd +
+                hlipid,
+              family = binomial(logit),
+              data = tmp)
+s1$d180 <- summary(m1.180)
+s1$d180
+
+# Model1.1y: Acute CHF, 1 year
+m1.1y <- glm(post.chf.acute.dx1.1y ~ decade + 
+               SEX +
+               dschyear + 
+               hhyp + 
+               hdiab + 
+               hckd + 
+               hcopd +
+               hlipid,
+             family = binomial(logit),
+             data = tmp)
+s1$y1 <- summary(m1.1y)
+s1$y1
+
+# Combine
+t.col.names <- c("Age (by Decade)",
+                 "Sex (Male)",
+                 "Discharge Year",
+                 "History of Hypertension",
+                 "History of Diabetes",
+                 "History of Chronic Kidney Disease",
+                 "History of COPD",
+                 "History of Disorder of Lipoid Metabolism")
+
+tm0 <- lapply(s1, function(a) {
+  out <- data.table(names = rownames(a$coefficients)[-1],
+                    m1.cf = exp(a$coefficients[-1, 1]),
+                    m1.lb = exp(a$coefficients[-1, 1] - 1.96*a$coefficients[-1, 2]),
+                    m1.ub = exp(a$coefficients[-1, 1] + 1.96*a$coefficients[-1, 2]),
+                    pval = ifelse(a$coefficients[-1, 4] >= 0.001,
+                                  round(a$coefficients[-1, 4], 3),
+                                  "<0.001"),
+                    star = ifelse(a$coefficients[-1, 4] <= 0.05, 
+                                  ifelse(a$coefficients[-1, 4] <= 0.01,
+                                         "**",
+                                         "*"), ""))
+  rownames(out) <- NULL
+  out$names <- t.col.names
+  return(out)
+})
+
+tm1 <- do.call("rbind", tm0)
+tm1 <- data.table(cutoff = rep(c("30 Days",
+                                 "90 Days",
+                                 "180 Days",
+                                 "1 Year"),
+                               each = length(t.col.names)),
+                  tm1)
+tm1$names <- factor(tm1$names, levels = unique(tm1$names))
+tm1$cutoff <- factor(as.character(tm1$cutoff),
+                     levels = c("30 Days", "90 Days", "180 Days",  "1 Year"))
+tm1
+write.csv(tm1, 
+          file = "tmp/hf_after_ami_or_no_hchf.csv",
+          row.names = FALSE)
+# Plot OR----
+tiff(filename = "tmp/hf_after_ami_or_no_hchf.tiff",
+     height = 8,
+     width = 8,
+     units = 'in',
+     res = 300,
+     compression = "lzw+p")
+ggplot(tm1, 
+       aes(x = names, 
+           y = m1.cf)) +
+  facet_wrap( ~ cutoff, 
+              ncol = 2) + 
+  geom_hline(yintercept = 1,
+             colour = "grey",
+             size = 1.1,
+             linetype = 2) +
+  geom_errorbar(aes(ymin = m1.lb,
+                    ymax = m1.ub,
+                    colour = names),
+                size = 1.1,
+                width = 0.2) +
+  geom_point(aes(x = names, 
+                 y = m1.cf),
+             size = 2) +
+  scale_colour_discrete(guide = FALSE) +
+  scale_x_discrete("Risk Factors") + 
+  scale_y_continuous("Odds Ratios") + 
+  ggtitle("Risk of Acute CHF After 1st Acute MI, No Prior Or Current ACHF") +
+  theme(axis.text.x = element_text(size = 12,
+                                   angle = 45, 
+                                   hjust = 1),
+        axis.text.y = element_text(size = 12),
+        text = element_text(size = 12))
+graphics.off()
+
+#**********************************************************
+# PART VI: Extended Models----
 # NOTE: remove History of Acute CHF
 s2 <- list()
 
@@ -575,7 +714,7 @@ ggplot(tm2,
 graphics.off()
 
 #**********************************************************
-# PART VI: Extended Models, No Acute CHF at 1st AMI admission or earlier----
+# PART VII: Extended Models, No Acute CHF at 1st AMI admission or earlier----
 # NOTE: remove History of Acute CHF
 s3 <- list()
 tmp <- droplevels(subset(case,
@@ -745,7 +884,7 @@ ggplot(tm3,
 graphics.off()
 
 #**********************************************************
-# PART VII: Tables----
+# PART VIII: Tables----
 # Female
 t5 <- addmargins(table(case$SEX))
 t5
