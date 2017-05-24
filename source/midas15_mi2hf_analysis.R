@@ -263,6 +263,37 @@ ggplot(tt1.l,
   guides(colour = guide_legend(title = "Follow-up"))
 graphics.off()
 
+# Plot For Jen's Presentation On 05/23/2017----
+tiff(filename = "tmp/hf_after_ami_rates_no_hchf_pres.tiff",
+     height = 5,
+     width = 6,
+     units = 'in',
+     res = 300,
+     compression = "lzw+p")
+ggplot(droplevels(subset(tt1.l,
+                         variable != "rate.1y")),
+       aes(x = year,
+           y = value,
+           colour = variable,
+           group = variable)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_hline(yintercept = 0,
+             linetype = "dashed") +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1)) +
+  scale_x_continuous("Year",
+                     breaks = unique(tt1.l$year),
+                     labels = unique(tt1.l$year)) +
+  scale_y_continuous("Rate (%)") +
+  scale_colour_manual(label = c("180 Days",
+                                "90 Days",
+                                "30 Days"),
+                      values = unique(tt1.l$variable)) +
+  ggtitle("HF Admission After AMI Discharge\nNo Prior Or Current ACHF") +
+  guides(colour = guide_legend(title = "Follow-up"))
+graphics.off()
+
 #**********************************************************
 # PART IV: Models----
 s1 <- list()
