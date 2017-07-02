@@ -178,10 +178,13 @@ write.csv(tt1,
 p1 <- ggplot(tt1.l,
              aes(x = dschyear,
                  y = value,
-                 colour = variable,
                  group = variable)) +
-  geom_line(size = 1) +
-  geom_point(size = 2) +
+  geom_line(size = 0.5) +
+  geom_point(aes(x = dschyear,
+                 y = value,
+                 fill = variable),
+             size = 2,
+             shape = 21) +
   geom_hline(yintercept = 0,
              linetype = "dashed") +
   scale_x_continuous("1st AMI Discharge Year",
@@ -189,17 +192,16 @@ p1 <- ggplot(tt1.l,
                      labels = 2000:2014) +
   scale_y_continuous("HF Admission Rate (%)",
                      limits = c(0, 8.5)) +
-  scale_colour_manual(label = c("1 Year",
+  scale_fill_manual(label = c("1 Year",
                                 "180 Days",
                                 "90 Days",
                                 "30 Days"),
                       values = unique(tt1.l$variable)) +
   ggtitle("HF Admissions After 1st AMI Discharge") +
-  guides(colour = guide_legend(title = "Follow-up")) +
+  guides(fill = guide_legend(title = "Follow-up")) +
   theme(axis.text.x = element_text(angle = 45,
                                    hjust = 1),
         plot.title = element_text(hjust = 0.5))
-
 
 tiff(filename = "tmp/hf_after_ami_rates.tiff",
      height = 6,
@@ -304,10 +306,13 @@ write.csv(tt2,
 p2 <- ggplot(tt2.l,
              aes(x = dschyear,
                  y = value,
-                 colour = variable,
                  group = variable)) +
-  geom_line(size = 1) +
-  geom_point(size = 2) +
+  geom_line(size = 0.5) +
+  geom_point(aes(x = dschyear,
+                 y = value,
+                 fill = variable),
+             size = 2,
+             shape = 21) +
   geom_hline(yintercept = 0,
              linetype = "dashed") +
   scale_x_continuous("1st AMI Discharge Year",
@@ -315,12 +320,12 @@ p2 <- ggplot(tt2.l,
                      labels = 2000:2014) +
   scale_y_continuous("HF Admission Rate (%)",
                      limits = c(0, 4.5)) +
-  scale_colour_manual(label = c("1 Year",
-                                "180 Days",
-                                "90 Days",
-                                "30 Days"),
-                      values = unique(tt1.l$variable)) +
-  ggtitle("HF Admission After 1st AMI Discharge\nNo Prior Or Current ACHF") +
+  scale_fill_manual(label = c("1 Year",
+                              "180 Days",
+                              "90 Days",
+                              "30 Days"),
+                    values = unique(tt2.l$variable)) +
+  ggtitle("HF Admission After 1st AMI Discharge\nNo Prior Or Current HF") +
   guides(colour = guide_legend(title = "Follow-up")) +
   theme(axis.text.x = element_text(angle = 45,
                                    hjust = 1),
@@ -511,8 +516,7 @@ write.csv(tm2,
           file = "tmp/hf_after_ami_or_combined.csv",
           row.names = FALSE)
 
-#**********************************************************\
-# EVERYTHING BELOW THIS LINE WAS NOT USED FOR PUBLICATION!----
+#**********************************************************
 # PART V: Models, no acute CHF prior or at 1st AMI admission----
 tmp <- droplevels(subset(case,
                          !(hchf.acute | chf.acute.current)))
@@ -520,9 +524,9 @@ summary(tmp)
 s1 <- list()
 
 # Model1.30: Acute CHF, 30 days
-m1.30 <- glm(post.chf.acute.dx1.30 ~ decade + 
+m1.30 <- glm(post.chf.acute.dx1.30 ~ years*before2008 +
+               decade + 
                SEX +
-               dschyear + 
                hhyp + 
                hdiab + 
                hckd + 
@@ -534,9 +538,9 @@ s1$d30 <- summary(m1.30)
 s1$d30
 
 # Model1.90: Acute CHF, 90 days
-m1.90 <- glm(post.chf.acute.dx1.90 ~ decade + 
+m1.90 <- glm(post.chf.acute.dx1.90 ~ years*before2008 +
+               decade + 
                SEX +
-               dschyear + 
                hhyp + 
                hdiab + 
                hckd + 
@@ -548,9 +552,9 @@ s1$d90 <- summary(m1.90)
 s1$d90
 
 # Model1.180: Acute CHF, 180 days
-m1.180 <- glm(post.chf.acute.dx1.180 ~ decade + 
+m1.180 <- glm(post.chf.acute.dx1.180 ~ years*before2008 +
+                decade + 
                 SEX +
-                dschyear + 
                 hhyp + 
                 hdiab + 
                 hckd + 
@@ -562,9 +566,9 @@ s1$d180 <- summary(m1.180)
 s1$d180
 
 # Model1.1y: Acute CHF, 1 year
-m1.1y <- glm(post.chf.acute.dx1.1y ~ decade + 
+m1.1y <- glm(post.chf.acute.dx1.1y ~ years*before2008 +
+               decade + 
                SEX +
-               dschyear + 
                hhyp + 
                hdiab + 
                hckd + 
@@ -576,14 +580,16 @@ s1$y1 <- summary(m1.1y)
 s1$y1
 
 # Combine
-t.col.names <- c("Age (by Decade)",
+t.col.names <- c("Years From Reference(*)",
+                 "2000 to 2007",
+                 "Age (by Decade)",
                  "Sex (Male)",
-                 "1st AMI Discharge Year",
                  "History of Hypertension",
                  "History of Diabetes",
                  "History of Chronic Kidney Disease",
                  "History of COPD",
-                 "History of Disorder of Lipoid Metabolism")
+                 "History of Disorder of Lipoid Metabolism",
+                 "Interaction: Years From Reference*(Between 2000 and 2007)")
 
 tm0 <- lapply(s1, function(a) {
   out <- data.table(names = rownames(a$coefficients)[-1],
@@ -602,28 +608,30 @@ tm0 <- lapply(s1, function(a) {
   return(out)
 })
 
-tm1 <- do.call("rbind", tm0)
-tm1 <- data.table(cutoff = rep(c("30 Days",
+tm3 <- do.call("rbind", tm0)
+tm3 <- data.table(cutoff = rep(c("30 Days",
                                  "90 Days",
                                  "180 Days",
                                  "1 Year"),
                                each = length(t.col.names)),
-                  tm1)
-tm1$names <- factor(tm1$names, levels = unique(tm1$names))
-tm1$cutoff <- factor(as.character(tm1$cutoff),
+                  tm3)
+tm3$names <- factor(tm3$names, levels = unique(tm3$names))
+tm3$cutoff <- factor(as.character(tm3$cutoff),
                      levels = c("30 Days", "90 Days", "180 Days",  "1 Year"))
-tm1
-write.csv(tm1, 
+tm3
+write.csv(tm3, 
           file = "tmp/hf_after_ami_or_no_hchf.csv",
           row.names = FALSE)
+
 # Plot OR----
+# Figure3: Plot OR----
 tiff(filename = "tmp/hf_after_ami_or_no_hchf.tiff",
-     height = 8,
-     width = 8,
+     height = 6,
+     width = 12,
      units = 'in',
      res = 300,
      compression = "lzw+p")
-ggplot(tm1, 
+ggplot(tm3, 
        aes(x = names, 
            y = m1.cf)) +
   facet_wrap( ~ cutoff, 
@@ -633,25 +641,49 @@ ggplot(tm1,
              size = 1.1,
              linetype = 2) +
   geom_errorbar(aes(ymin = m1.lb,
-                    ymax = m1.ub,
-                    colour = names),
-                size = 1.1,
+                    ymax = m1.ub),
+                size = 0.4,
                 width = 0.2) +
   geom_point(aes(x = names, 
-                 y = m1.cf),
-             size = 2) +
-  scale_colour_discrete(guide = FALSE) +
-  scale_x_discrete("Risk Factors") + 
+                 y = m1.cf,
+                 fill = names),
+             size = 2,
+             shape = 21) +
+  scale_fill_manual(labels = paste(LETTERS[1:nlevels(tm3$names)],
+                                   levels(tm3$names),
+                                   sep = ": "),
+                    values = rainbow(nlevels(tm3$names))) +
+  scale_x_discrete("Risk Factors",
+                   labels = LETTERS[1:nlevels(tm3$names)]) + 
   scale_y_continuous("Odds Ratios") + 
-  ggtitle("Risk of Acute CHF After 1st Acute MI, No Prior Or Current ACHF") +
+  ggtitle("Odds Ratios of HF Admission After First AMI Discharge") +
   theme(axis.text.x = element_text(size = 12,
-                                   angle = 45, 
                                    hjust = 1),
         axis.text.y = element_text(size = 12),
-        text = element_text(size = 12))
+        text = element_text(size = 12),
+        plot.title = element_text(hjust = 0.5)) +
+  guides(fill = guide_legend("Risk Factors Legend"))
 graphics.off()
 
+# Table2: OR, 95% C.I., and p-values----
+tm3$est <- paste(round(tm3$m1.cf, 3),
+                 " (",
+                 round(tm3$m1.lb, 3),
+                 ", ",
+                 round(tm3$m1.ub, 3),
+                 ")\n",
+                 tm3$pval,
+                 sep = "")
+tm4 <- dcast.data.table(data = tm3,
+                        names ~ cutoff,
+                        value.var = "est")
+names(tm4)[1] <- "Risk Factor"
+tm4
+write.csv(tm4, 
+          file = "tmp/hf_after_ami_or_no_hchf_combined.csv",
+          row.names = FALSE)
 #**********************************************************
+# EVERYTHING BELOW THIS LINE WAS NOT USED FOR PUBLICATION!----
 # PART VI: Extended Models----
 # NOTE: remove History of Acute CHF
 s2 <- list()
