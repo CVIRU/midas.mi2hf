@@ -3,19 +3,16 @@
 ### Created: 04/08/2017   
 
 ---
-### 06/05/2017
-* Added analysis without patients who had acute CHF diagnisis prior or on the 1st AMI admission
 
-### 05/05/2017
-* In 'midas15_mi2hf_data.R/PART III' lines 644 to 657, replaced 'prior' with 
-'(prior | current)' for histories of risk factors
+### 07/07/2017
+### Email sent to J. Kosis, Jen, Jerry and Jeanne
+Below are the minutes from today's meeting regarding the HF-After-AMI study.   
 
-### 04/08/2017 
-* Updated data set to MIDAS15
+1. Methodology drift: we found the variable that flags the type of admission (pat_type: 0 = in-patient, 1 = ?, 2 = ER, 3 = ?. Jerry, could you please remind me what the levels are, I could not find it in the MIDAS dictionary since my copy is outdated, it is from 2006). I will create a new data set with this flag and merge it with MIDAS-2015 dataset. I will then rerun the entire analysis for inpatients and, possibly, compare their outcomes with the once admitted to ER.   
 
-### 02/05/2017
-* Updated subset: using acute CHF admission (DX1 only) following AMI discharge (DX1 only)
-* Finilazed the analysis
+2. What's novel? Is this a more inclusive study since it has statewide records? Does it confirm downward trend in HF after AMI reported by others? Are the results from previous studies inconclusive or contradictory? Are people admitted to ER at higher risk (very new)?   
+
+3. Move the last highlight (by JK) from "punchline" to "limitations".   
 
 ### 06/20/2017
 ### From Jen's email (06/20/2017):    
@@ -47,3 +44,17 @@
 5. I added Table1 with odds ratio estimates, 95% confidence intervals, and p-values. I also stated the results in the section "Associations with Developing Heart Failure".   
 
 6. Figure 3 (odds ratios) was updated to reflect the methodology drift.   
+
+### 06/05/2017
+* Added analysis without patients who had acute CHF diagnisis prior or on the 1st AMI admission
+
+### 05/05/2017
+* In 'midas15_mi2hf_data.R/PART III' lines 644 to 657, replaced 'prior' with 
+'(prior | current)' for histories of risk factors
+
+### 04/08/2017 
+* Updated data set to MIDAS15
+
+### 02/05/2017
+* Updated subset: using acute CHF admission (DX1 only) following AMI discharge (DX1 only)
+* Finilazed the analysis
