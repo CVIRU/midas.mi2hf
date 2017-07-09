@@ -4,6 +4,11 @@
 
 ---
 
+### 07/08/2017
+* Added Patient Type (inpatient, emergency, other 2 types). The data was created with SAS and R scripts, see project 'midas' on GitHub.
+* V2 of data processing and analysis scripts is added
+* No notable difference after removing emergency visits between 2008 and 2015. There is still a bump around 2008.
+
 ### 07/07/2017
 ### Email sent to J. Kosis, Jen, Jerry and Jeanne
 Below are the minutes from today's meeting regarding the HF-After-AMI study.   

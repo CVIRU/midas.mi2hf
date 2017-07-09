@@ -1,7 +1,7 @@
 # Project: Heart Failures after MIs in MIDAS       
 # Author: Jen Wellings; Davit Sargsyan   
 # Created:  04/22/2016
-# Modified: 07/08/2017
+# Modified: 07/08/2017, using new MIDAS15 with Patient Type variable
 #**********************************************************
 # Header----
 # Move up one directory
@@ -19,20 +19,14 @@ require(data.table)
 
 # PART I----
 # Load MIDAS----
+# NOTE: data was preprocessed. See project 
+# 'midas' R script 'export_midas_from_csv_to_rdata.R'
 system.time(load("C:/MIDAS/midas15.RData"))
 midas15
 
 # Remove unused variables----
-midas15[, LOCATION := NULL]
-midas15[, CAUSE := NULL]
-midas15[, DeathRNUM := NULL]
 midas15[, ZIP := NULL]
-midas15[, STATUS := NULL]
-midas15[, SOURCE := NULL]
 midas15[, TOTBIL := NULL]
-midas15[, DRG := NULL]
-midas15[, RECDID := NULL]
-midas15[, DSHYR := NULL]
 midas15[, PROC1 := NULL]
 midas15[, PROC2 := NULL]
 midas15[, PROC3 := NULL]
@@ -41,124 +35,24 @@ midas15[, PROC5 := NULL]
 midas15[, PROC6 := NULL]
 midas15[, PROC7 := NULL]
 midas15[, PROC8 := NULL]
-midas15[, PRDTE1 := NULL]
-midas15[, PRDTE2 := NULL]
-midas15[, PRDTE3 := NULL]
-midas15[, PRDTE4 := NULL]
-midas15[, PRDTE5 := NULL]
-midas15[, PRDTE6 := NULL]
-midas15[, PRDTE7 := NULL]
-midas15[, PRDTE8 := NULL]
-midas15[, SECOND := NULL]
-midas15[, THIRD := NULL]
 midas15[, DIV := NULL]
 gc()
 
 # Number of patients
 length(unique(midas15$Patient_ID))
-# 4,842,160
-
-# Convert dates----
-midas15[, NEWDTD := as.Date(NEWDTD, format = "%m/%d/%Y")]
-midas15[, ADMDAT := as.Date(ADMDAT, format = "%m/%d/%Y")]
-midas15[, DSCHDAT := as.Date(DSCHDAT, format = "%m/%d/%Y")]
-midas15[, patbdte := as.Date(patbdte, format = "%m/%d/%Y")]
-
-# Missing birthdays
-midas15[is.na(midas15$patbdte)]
-# All records for these patients
-midas15[Patient_ID %in% Patient_ID[is.na(patbdte)]]
-# There are 8 patients with missing birthday records; REMOVE THEM
-midas15$Patient_ID[is.na(midas15$patbdte)]
-midas15 <- subset(midas15, 
-                  !(Patient_ID %in% Patient_ID[is.na(patbdte)]))
-summary(midas15$patbdte)
+# 4,680,205
 
 # Keep only records from 01/01/1995 (admission dates)
-summary(midas15$ADMDAT)
-# NOTE: the cut-off date had a typo and was "1995-01-11",
-# i.e. dropped first 10 days of 1995. No impact on the resuults.
 midas15 <- subset(midas15, ADMDAT >= "1995-01-01")
 
-# Remove records with discarge date before admission
-midas15[which(midas15$ADMDAT > midas15$DSCHDAT), ]
-midas15 <- subset(midas15, ADMDAT <= DSCHDAT)
-
-range(midas15$ADMDAT)
-range(midas15$DSCHDAT)
-
 # Remove anybody who was younger than 20 at any admisson
-midas15[, AGE := floor(as.numeric(difftime(ADMDAT, 
-                                           patbdte,
-                                           units = "days"))/365.25)]
-hist(midas15$AGE, 100)
 id.rm <- midas15$Patient_ID[midas15$AGE < 20]
 midas15 <- subset(midas15, !(Patient_ID %in% id.rm))
 hist(midas15$AGE, 100)
 gc()
 
-# Number of hospitals----
-unique(midas15$HOSP)
-length(unique(midas15$HOSP))
-table(midas15$HOSP)
-sum(is.na(midas15$HOSP))
-# 94 + 1(#2000, error code?)
-
-# Convert to factors----
-# Sex----
-midas15[, SEX := factor(SEX, levels = c("F", "M"))]
-
-# Race----
-table(midas15$RACE)
-midas15$RACE1 <- "Other"
-midas15$RACE1[midas15$RACE == 1] <- "White"
-midas15$RACE1[midas15$RACE == 2] <- "Black"
-midas15[, RACE1 := factor(RACE1,
-                          levels = c("White",
-                                     "Black",
-                                     "Other"))]
-table(midas15$RACE1)
-midas15[, RACE := NULL]
-names(midas15)[ncol(midas15)] <- "RACE"
-
-# Primary insurance----
-write.csv(100*table(midas15$PRIME)/nrow(midas15), 
-          file = "tmp/prime.csv")
-midas15$PRIME[(midas15$PRIME %in% c("BLUE CROSS PLANS",
-                                    "HMO"))] <- "COMMERCIAL"
-
-midas15$PRIME[!(midas15$PRIME %in% c("medicare",
-                                     "COMMERCIAL"))] <- "medicaid/self-pay/other"
-midas15$PRIME <- factor(midas15$PRIME,
-                        levels = c("medicare",
-                                   "COMMERCIAL",
-                                   "medicaid/self-pay/other"))
-round(100*addmargins(table(midas15$PRIME)/nrow(midas15)), 1)
-# medicare | COMMERCIAL | medicaid/self-pay/other | Sum 
-# 52.7     | 39.4       | 7.9                     | 100.0
-gc()
-
-# Hispanic----
-table(midas15$HISPAN)
-midas15$HISP <- "Hispanic"
-midas15$HISP[midas15$HISPAN %in% c(".", "9", "A")] <- "Unknown"
-midas15$HISP[midas15$HISPAN == "0"] <- "Non-hispanic"
-midas15$HISP <- factor(midas15$HISP,
-                       levels = c("Hispanic",
-                                  "Non-hispanic",
-                                  "Unknown"))
-table(midas15$HISP)
-midas15[, HISPAN := NULL]
-names(midas15)[ncol(midas15)] <- "HISPAN"
-gc()
-
 summary(midas15)
 gc()
-
-# Sort----
-setkey(midas15,
-       Patient_ID,
-       ADMDAT)
 
 #**********************************************************
 # Separate diagnostic codes (DX1:DX9)
@@ -193,7 +87,7 @@ save(midas15,
      dx, 
      dx.1.3, 
      file = file.path(DATA_HOME,
-                      "midas15_mi2hf_02052017.RData"), 
+                      "midas15_mi2hf_07082017.RData"), 
      compress = FALSE)
 
 # Clean workspace
@@ -202,10 +96,7 @@ gc()
 
 #**********************************************************
 # PART II----
-DATA_HOME <- "C:/Users/ds752/Documents/git_local/data/midas.mi2hf"
-require(data.table)
-
-load(file.path(DATA_HOME, "midas15_mi2hf_02052017.RData"))
+load(file.path(DATA_HOME, "midas15_mi2hf_07082017.RData"))
 range(midas15$ADMDAT)
 range(midas15$DSCHDAT)
 
@@ -258,6 +149,17 @@ midas15[, ami.dx1 := (dx.1.3$DX1 == "410")]
 midas15[, ami := (rowSums(dx.1.3 == "410") > 0)]
 addmargins(table(ami = midas15$ami,
                  ami.dx1 = midas15$ami.dx1))
+# |-------------------------------------------|
+# |       | ami.dx1                           |
+# |       |-----------------------------------|
+# | ami   | FALSE      | TRUE    | Sum        |
+# |-------|------------|---------|------------|
+# | FALSE | 11268961   | 0       | 11,268,961 |
+# |-------|------------|---------|------------|
+# | TRUE  | 124,976    | 342,816 | 467,792    |
+# |-------|------------|---------|------------|
+# | Sum   | 11,393,937 | 342,816 | 11,736,753 |
+# |-------------------------------------------|
 
 # Keep patients who was admitted for AMI from 01/01/2000 onward
 id.keep <- unique(midas15$Patient_ID[midas15$ami.dx1 &
@@ -266,7 +168,7 @@ dt1 <- subset(midas15,
               Patient_ID %in% id.keep)
 setkey(dt1)
 length(unique(dt1$Patient_ID))
-# 1,324,383 records for 180,205 patients
+# 1,342,046 records for 180,182 patients
 
 # Same for DXs
 dx <- subset(dx, 
@@ -353,8 +255,19 @@ dt1[, chf.acute.dx1 := (dx$DX1 %in% c("4280",
                                       "42840",
                                       "42841",
                                       "42843"))]
-table(chf.acute = dt1$chf.acute,
-      chf.acute.dx1 = dt1$chf.acute.dx1)
+addmargins(table(chf.acute = dt1$chf.acute,
+                 chf.acute.dx1 = dt1$chf.acute.dx1))
+# |-------------------------------------------|
+# |       | chf.acute.dx1                     |
+# | chf   |-----------------------------------|
+# | acute | FALSE      | TRUE    | Sum        |
+# |-------|------------|---------|------------|
+# | FALSE | 1,001,153  | 0       | 1,001,153  |
+# |-------|------------|---------|------------|
+# | TRUE  | 254,469    | 86,424  | 340,893    |
+# |-------|------------|---------|------------|
+# | Sum   | 1,255,622  | 86,424  | 1,342,046  |
+# |-------------------------------------------|
 gc()
 
 # 1c. Chronic CFH----
@@ -464,7 +377,7 @@ dt1[, ckd := (rowSums(dx.1.3 == "585", na.rm = TRUE) > 0)]
 table(dt1$ckd)
 gc()
 
-# 6. COPD----
+# 6. Chronic obstructive pulmonary disease (COPD)----
 # 490 Bronchitis, not specified as acute or chronic
 # 491 Chronic bronchitis
 # 492 Emphysema
@@ -496,10 +409,10 @@ gc()
 ## 272.9 Unspecified disorder of lipoid metabolism
 dt1[, lipid := (rowSums(dx.1.3 == "272", na.rm = TRUE) > 0)]
 table(dt1$lipid)
-dt1
-summary(dt1)
 
 # Clean memory
+dt1
+summary(dt1)
 rm(dx,
    dx.1.3)
 gc()
@@ -528,20 +441,15 @@ sum(dt1$current)
 dt1 <- droplevels(dt1)
 summary(dt1)
 save(dt1, 
-     file = file.path(DATA_HOME, "dt1_02052017.RData"),
+     file = file.path(DATA_HOME, "dt1_07082017.RData"),
      compress = FALSE)
 
 #**********************************************************
 # PART III----
-DATA_HOME <- "C:/Users/ds752/Documents/git_local/data/midas.mi2hf"
-require(data.table)
-require(ggplot2)
-
-load(file.path(DATA_HOME, "dt1_02052017.RData"))
-
 # Outcomes and histories (prior to 1st PCI)----
 system.time(
-  hh <- dt1[, list(ADMDAT,
+  hh <- dt1[, list(PAT_TYPE,
+                   ADMDAT,
                    DSCHDAT,
                    patbdte,
                    NEWDTD,
@@ -699,7 +607,7 @@ case <- unique(subset(hh, current & ami.dx1))
 
 # If the are are more than 1 records of 1st MI admissions per person,
 nrow(case) - length(unique(case$Patient_ID))
-# Remove 545 patient with duplicate records
+# Remove 5,626 patient with duplicate records
 case <- case[!(Patient_ID %in% Patient_ID[duplicated(Patient_ID)]), ]
 summary(case)
 
@@ -710,18 +618,7 @@ case <- droplevels(subset(case, (is.na(NEWDTD) | NEWDTD != first)))
 case <- droplevels(subset(case, !hami))
 case[, hami := NULL]
 
-# MI discharges
-t1 <- table(case$dschyear,
-            case$ami.dx1)
-t1
-plot(t1[, 1] ~ as.numeric(rownames(t1)), 
-     type = "b",
-     xlab = "Year",
-     ylab = "Number of MI Discharges (DX1 Only)")
-
-write.csv(data.table(var = names(case)),
-          file = "tmp/t1.csv",
-          row.names = FALSE)
+# Save----
 save(case, 
-     file = file.path(DATA_HOME, "case_02052017.RData"),
+     file = file.path(DATA_HOME, "case_07082017.RData"),
      compress = FALSE)
