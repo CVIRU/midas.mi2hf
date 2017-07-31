@@ -5,6 +5,17 @@
 ---
 
 ## Daily Logs
+### 07/31/2017
+#### Continued working on analysis (script 'midas15_mi2hf_analysis_v3.R')
+   
+* History of acute CHF vs acute CHF recorded at 1st AMI admission (%)
+  |      |achf @ 1st ami     |
+  |h.achf| FALSE| TRUE|   Sum|
+  |:-----|-----:|----:|-----:|
+  |FALSE |  69.6| 18.3|  87.9|
+  |TRUE  |   4.5|  7.7|  12.1|
+  |Sum   |  74.0| 26.0| 100.0|
+
 ### 07/29/2017
 #### Updated dataset details (script 'midas15_mi2hf_data_v3.R'):
 * There is a total of 18,071,613 records of 4,680,205 patients   
@@ -64,7 +75,7 @@ h. Disorders of lipoid metabolism (NEW DEFINITION, see note form 07/28/2017 meet
 |Medicare                                 |46.7      |
 |Medicade/Self-Pay/Other                  |7.9       |
 
-* High number of blacks is haveing AMI: checked against NJ population racial composition
+* High number of blacks is having AMI: checked against NJ population racial composition
 ** Percent AMI by Sex and Race (%)    
 |    | White| Black| Other|   Sum|
 |:---|-----:|-----:|-----:|-----:|
@@ -86,6 +97,13 @@ h. Disorders of lipoid metabolism (NEW DEFINITION, see note form 07/28/2017 meet
 |Black Female/White Female |                4.3|
 |Black Male/White Male     |                5.2|
 |Black All/White All       |                4.7|
+
+** Compare to other races    
+|Race                      | AMI Risk Foldchage|
+|:-------------------------|------------------:|
+|Other Female/White Female |                1.0|
+|Other Male/White Male     |                1.2|
+|Other All/White All       |                1.1|
 
 ### 07/28/2017 Weekly Meeting Notes
 * The latest version of the manuscript ("HF after MI_JW_072317.docx"") was reviewed    
