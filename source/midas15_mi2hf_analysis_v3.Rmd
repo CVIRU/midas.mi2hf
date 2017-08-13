@@ -1,3 +1,11 @@
+---
+title: "Heart Failures after MIs in MIDAS"
+author: Jen Wellings; Davit Sargsyan
+date: 04/21/2017
+output: html_notebook
+---
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
 # |----------------------------------------------------------------------------------|
 # | Project: Heart Failures after MIs in MIDAS                                       |
 # | Script: Data analysis                                                            |
@@ -8,17 +16,7 @@
 # |----------------------------------------------------------------------------------|
 # Header----
 # Save consol output to a log file
-sink(file = "tmp/log_analysis_v3.txt")
-
-# Move up one directory
-wd <- getwd()
-setwd("..")
-DATA_HOME <- paste(getwd(),
-                   "data/midas.mi2hf",
-                   sep = "/")
-# Reset working directory
-setwd(wd)
-getwd()
+# sink(file = "tmp/log_analysis_v3.txt")
 
 # Load packages
 require(data.table)
@@ -27,7 +25,7 @@ require(gridExtra)
 require(knitr)
 
 # PART I: Load data----
-load(file.path(DATA_HOME, "case_07292017.RData"))
+load("C:/git_local/data/midas.mi2hf/case_07292017.RData")
 case[, hhyp.401 := NULL]
 case[, hhyp.402 := NULL]
 case[, hhyp.403 := NULL]
@@ -64,15 +62,6 @@ p1 <- ggplot(t1,
                                    hjust = 1),
         plot.title = element_text(hjust = 0.5))
 p1
-
-tiff(filename = "tmp/ami_per_year.tiff",
-     height = 5.5,
-     width = 8,
-     units = 'in',
-     res = 300,
-     compression = "lzw+p")
-print(p1)
-graphics.off()
 
 # Pubication/Table1: Demographics----
 summary(case)
@@ -136,7 +125,7 @@ kable(round(100*t2/t2[3, 4], 1))
 
 # Population adjustment (NJ by race)----
 # Source: https://www.census.gov/cps/data/cpstablecreator.html
-njpop <- fread("docs/race_sex_census_nj_2009_2015.csv")
+njpop <- fread("C:/git_local/midas.mi2hf/docs/race_sex_census_nj_2009_2015.csv")
 njpop$race <- factor(njpop$race,
                      levels = unique(njpop$race))
 p2 <- ggplot(njpop,
@@ -156,15 +145,6 @@ p2 <- ggplot(njpop,
                                    hjust = 1),
         plot.title = element_text(hjust = 0.5))
 p2
-
-tiff(filename = "tmp/nj_race_sex_census_2009_2015.tiff",
-     height = 4,
-     width = 6,
-     units = 'in',
-     res = 300,
-     compression = "lzw+p")
-print(p2)
-graphics.off()
 
 # Since there was little change, take averages
 t3 <- aggregate(njpop$count,
@@ -339,15 +319,6 @@ p1 <- ggplot(data = death,
   guides(fill = guide_legend(title = "Follow-up"))
 p1
 
-tiff(filename = "tmp/death_after_ami_rates.tiff",
-     height = 5,
-     width = 5,
-     units = 'in',
-     res = 300,
-     compression = "lzw+p")
-print(p1)
-graphics.off()
-
 # 2. Readmissions due to HF after AMI----
 # 30 days----
 t1 <- addmargins(table(case$dschyear,
@@ -434,15 +405,6 @@ p2 <- ggplot(data = readm.hf.dx1,
         plot.title = element_text(hjust = 0.5)) +
   guides(fill = guide_legend(title = "Follow-up"))
 p2
-
-tiff(filename = "tmp/hf_after_ami_rates.tiff",
-     height = 5,
-     width = 5,
-     units = 'in',
-     res = 300,
-     compression = "lzw+p")
-print(p2)
-graphics.off()
 
 # 3. Readmissions due to HF after AMI among survivals----
 # 30 days----
@@ -555,15 +517,6 @@ p3 <- ggplot(data = readm.hf.dx1.alive,
   guides(fill = guide_legend(title = "Follow-up"))
 p3
 
-tiff(filename = "tmp/hf_after_ami_alive_rates.tiff",
-     height = 5,
-     width = 5,
-     units = 'in',
-     res = 300,
-     compression = "lzw+p")
-print(p3)
-graphics.off()
-
 # 4. Cardiovascular death rates----
 # 30 days----
 t1 <- addmargins(table(case$dschyear,
@@ -650,15 +603,6 @@ p4 <- ggplot(data = cvdeath,
         plot.title = element_text(hjust = 0.5)) +
   guides(fill = guide_legend(title = "Follow-up"))
 p4
-
-tiff(filename = "tmp/cvdeath_after_ami_rates.tiff",
-     height = 5,
-     width = 5,
-     units = 'in',
-     res = 300,
-     compression = "lzw+p")
-print(p4)
-graphics.off()
 
 # 5. Readmissions due to AMI rates, no acute CHF prior or at 1st AMI admission----
 tmp <- droplevels(subset(case,
@@ -763,15 +707,6 @@ p5 <- ggplot(data = readm.hf.dx1.no.hcf,
         plot.title = element_text(hjust = 0.5)) +
   guides(fill = guide_legend(title = "Follow-up"))
 p5
-
-tiff(filename = "tmp/hf_after_ami_no_hist_of_hf_rates.tiff",
-     height = 5,
-     width = 5,
-     units = 'in',
-     res = 300,
-     compression = "lzw+p")
-print(p3)
-graphics.off()
 
 #**********************************************************
 # PART III: Models----
@@ -903,9 +838,6 @@ tm1$cutoff <- factor(as.character(tm1$cutoff),
                                 "180 Days", 
                                 "1 Year"))
 tm1
-write.csv(tm1, 
-          file = "tmp/all-cause_death_after_ami_or.csv",
-          row.names = FALSE)
 
 # Plot OR----
 p6 <- ggplot(tm1, 
@@ -942,15 +874,6 @@ p6 <- ggplot(tm1,
   guides(fill = guide_legend("Risk Factors Legend"))
 p6
 
-tiff(filename = "tmp/all-cause_death_after_ami_or.tiff",
-     height = 8,
-     width = 12,
-     units = 'in',
-     res = 300,
-     compression = "lzw+p")
-print(p6)
-graphics.off()
-
 # Table1: OR, 95% C.I., and p-values----
 tm1$est <- paste(round(tm1$m1.cf, 3),
                  " (",
@@ -965,6 +888,5 @@ tm2 <- dcast.data.table(data = tm1,
                         value.var = "est")
 names(tm2)[1] <- "Risk Factor"
 tm2
-write.csv(tm2, 
-          file = "tmp/all-cause_death_after_ami_or_combined.csv",
-          row.names = FALSE)
+# sink()
+```

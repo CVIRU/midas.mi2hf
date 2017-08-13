@@ -5,6 +5,11 @@
 ---
 
 ## Daily Logs
+### 08/12/2017
+* To make the data compatable to the Census Bureau data, move the age reshold from 20 (see bulletpoint #3 from 07/29/2017 log) to 18 y.o.    
+* Rerun both, data and analysis scripts (v3 of both scripts)    
+* Created an R Notebook file and rendered: *midas15_mi2hf_analysis_v3.Rmd*   
+
 ### 07/31/2017
 #### Continued working on analysis (script 'midas15_mi2hf_analysis_v3.R')
    
@@ -23,7 +28,7 @@
 * All records of patients who were admited before the age of 20 are removed 
 * Keep inpatients' records only    
 * Remove all cancers: ICD-9 140-165, 170-176, and 180-239   
-* Kepp only the patients with AMI (ICD-9 codes 410.xx) admissions between 01/01/2000 and 12/31/2015: 1,082,998 records of 183727 patients    
+* Kepp only the patients with AMI (ICD-9 codes 410.xx) admissions between 01/01/2000 and 12/31/2015: 1,082,998 records of 183,727 patients    
 * Define risk factors:   
 a. Acute congsestive heart falure(ICD-9 codes 428.0, 428.20, 428.21, 428.23, 428.30, 428.31, 428.33, 428.40, 428.41 and 428.43)    
 b. Chronic congsestive heart falure(ICD-9 codes 428.22, 428.32 and 428.42)    

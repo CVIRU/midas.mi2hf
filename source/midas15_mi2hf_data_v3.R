@@ -52,8 +52,8 @@ length(unique(midas15$Patient_ID))
 # Keep only records from 01/01/1995 (admission dates)
 midas15 <- subset(midas15, ADMDAT >= "1995-01-01")
 
-# Remove anybody who was younger than 20 at any admisson
-id.rm <- midas15$Patient_ID[midas15$AGE < 20]
+# Remove anybody who was younger than 18 at any admisson
+id.rm <- midas15$Patient_ID[midas15$AGE < 18]
 midas15 <- subset(midas15, !(Patient_ID %in% id.rm))
 hist(midas15$AGE, 100)
 gc()
@@ -161,11 +161,11 @@ midas15[, ami := (rowSums(dx.1.3 == "410") > 0)]
 kable(addmargins(table(ami = midas15$ami,
                        ami.dx1 = midas15$ami.dx1)))
 
-# |      |   FALSE|   TRUE|     Sum|
-# |:-----|-------:|------:|-------:|
-# |FALSE | 7806228|      0| 7806228|
-# |TRUE  |  124365| 335517|  459882|
-# |Sum   | 7930593| 335517| 8266110|
+  # |      |   FALSE|   TRUE|     Sum|
+  # |:-----|-------:|------:|-------:|
+  # |FALSE | 7827685|      0| 7827685|
+  # |TRUE  |  124448| 335600|  460048|
+  # |Sum   | 7952133| 335600| 8287733|
 
 # Keep patients who was admitted for AMI from 01/01/2000 onward
 id.keep <- unique(midas15$Patient_ID[midas15$ami.dx1 &
@@ -174,7 +174,7 @@ dt1 <- subset(midas15,
               Patient_ID %in% id.keep)
 setkey(dt1)
 length(unique(dt1$Patient_ID))
-# 1,082,998 records of 183727 patients
+# 1,082,998 records of 183,780 patients
 
 # Same for DXs
 dx <- subset(dx, 
@@ -263,11 +263,13 @@ dt1[, chf.acute.dx1 := (dx$DX1 %in% c("4280",
                                       "42843"))]
 kable(addmargins(table(chf.acute = dt1$chf.acute,
                  chf.acute.dx1 = dt1$chf.acute.dx1)))
-# |      |  FALSE|  TRUE|     Sum|
-# |:-----|------:|-----:|-------:|
-# |FALSE | 767205|     0|  767205|
-# |TRUE  | 232298| 83495|  315793|
-# |Sum   | 999503| 83495| 1082998|
+
+  # |      |  FALSE|  TRUE|     Sum|
+  # |:-----|------:|-----:|-------:|
+  # |FALSE | 767444|     0|  767444|
+  # |TRUE  | 232330| 83499|  315829|
+  # |Sum   | 999774| 83499| 1083273|
+  
 gc()
 
 # 1c. Chronic CFH----
@@ -605,12 +607,12 @@ case$cvdeath[case$dead & substr(case$CAUSE, 1, 1) == "I"] <- TRUE
 
 kable(addmargins(table(all_cause_death = case$dead,
                        cv_death = case$cvdeath)))
-# | all-cause|       cv death       |
-# |   death  |  FALSE|  TRUE|    Sum|
-# |:---------|------:|-----:|------:|
-# |FALSE     | 116489|     0| 116489|
-# |TRUE      |  17315| 23851|  41166|
-# |Sum       | 133804| 23851| 157655|
+
+  # |      |  FALSE|  TRUE|    Sum|
+  # |:-----|------:|-----:|------:|
+  # |FALSE | 116536|     0| 116536|
+  # |TRUE  |  17318| 23852|  41170|
+  # |Sum   | 133854| 23852| 157706|
 
 case$days2cvdeath <- case$days2death
 case$days2cvdeath[!case$cvdeath] <- NA
