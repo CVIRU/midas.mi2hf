@@ -1,10 +1,18 @@
-##  Project: Heart Failures after First AMI in MIDAS       
-### Author: Jen Wellings; Davit Sargsyan   
+##  Project: Heart Failures after First AMI in MIDAS  
+### Principal Investigator: John B. Kostis
+### Coordinator: Jen Wellings
+### Statistician: Davit Sargsyan 
+### Study ID: Pro20150002703
 ### Created: 04/08/2017   
 
 ---
 
 ## Daily Logs
+### 08/18/2017
+* Created CVIRU Organization in GitHUb and moved this repository under the organization    
+* Created a Project for the publication within this repository. See ToDo cards under Project tab
+* Finilazed details on analysis (discussed during the weekly meeting). See Project1's ToDo for details    
+
 ### 08/12/2017
 * To make the data compatable to the Census Bureau data, move the age reshold from 20 (see bulletpoint #3 from 07/29/2017 log) to 18 y.o.    
 * Rerun both, data and analysis scripts (v3 of both scripts)    
@@ -63,7 +71,8 @@ h. Disorders of lipoid metabolism (NEW DEFINITION, see note form 07/28/2017 meet
 
 #### Updated analysis (script 'midas15_mi2hf_analysis_v3.R'):
 * Added Table1: Demographics    
-|                                         |          |
+
+|Parameter                                |Estimate  |
 |:----------------------------------------|:---------|
 |Mean Age at First AMI Admission +/- S.D. |66.7+/-15 |
 |Female(%)                                |39.7      |
@@ -79,9 +88,10 @@ h. Disorders of lipoid metabolism (NEW DEFINITION, see note form 07/28/2017 meet
 |Commercial                               |45.5      |
 |Medicare                                 |46.7      |
 |Medicade/Self-Pay/Other                  |7.9       |
-
+   
 * High number of blacks is having AMI: checked against NJ population racial composition
 ** Percent AMI by Sex and Race (%)    
+
 |    | White| Black| Other|   Sum|
 |:---|-----:|-----:|-----:|-----:|
 |F   |  20.3|  16.8|   2.6|  39.7|
@@ -89,6 +99,7 @@ h. Disorders of lipoid metabolism (NEW DEFINITION, see note form 07/28/2017 meet
 |Sum |  50.1|  42.2|   7.7| 100.0|
 
 ** Racial Composition of NJ (%) (18 y.o and older; source: https://www.census.gov/cps/data/cpstablecreator.html)   
+
 | white| black| other| total|
 |-----:|-----:|-----:|-----:|
 |  39.5|   7.5|   4.9|    52|
@@ -97,6 +108,7 @@ h. Disorders of lipoid metabolism (NEW DEFINITION, see note form 07/28/2017 meet
 
 ** How much more likely to get AMI for a black NJ recident?
 ** Risk foldchange, adjusted for population    
+
 |Race                      | AMI Risk Foldchage|
 |:-------------------------|------------------:|
 |Black Female/White Female |                4.3|
@@ -104,6 +116,7 @@ h. Disorders of lipoid metabolism (NEW DEFINITION, see note form 07/28/2017 meet
 |Black All/White All       |                4.7|
 
 ** Compare to other races    
+
 |Race                      | AMI Risk Foldchage|
 |:-------------------------|------------------:|
 |Other Female/White Female |                1.0|
