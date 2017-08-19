@@ -14,12 +14,12 @@
 #### Continued working on analysis (script 'midas15_mi2hf_analysis_v3.R')
    
 * History of acute CHF vs acute CHF recorded at 1st AMI admission (%)   
-|      |achf @ 1st ami     |
-|h.achf| FALSE| TRUE|   Sum|
-|:-----|-----:|----:|-----:|
-|FALSE |  69.6| 18.3|  87.9|
-|TRUE  |   4.5|  7.7|  12.1|
-|Sum   |  74.0| 26.0| 100.0|
+
+||No Current HF|Curent HF|Sum|
+|:----------|-----:|----:|-----:|
+|No Prior HF|  69.6| 18.3|  87.9|
+|Prior HF   |   4.5|  7.7|  12.1|
+|Sum        |  74.0| 26.0| 100.0|
 
 ### 07/29/2017
 #### Updated dataset details (script 'midas15_mi2hf_data_v3.R'):
