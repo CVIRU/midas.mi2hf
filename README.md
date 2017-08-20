@@ -1,17 +1,21 @@
 ##  Project: Heart Failures after First AMI in MIDAS  
+### Study ID: [Pro20150002703](https://eirb.rutgers.edu/eIRB/Rooms/DisplayPages/LayoutInitial?Container=com.webridge.entity.Entity[OID[468FDCE134E4BB4E9BDBE04DCBC8CE17]])
 ### Principal Investigator: John B. Kostis
 ### Coordinator: Jen Wellings
 ### Statistician: Davit Sargsyan 
-### Study ID: [Pro20150002703](https://eirb.rutgers.edu/eIRB/Rooms/DisplayPages/LayoutInitial?Container=com.webridge.entity.Entity[OID[468FDCE134E4BB4E9BDBE04DCBC8CE17]])
 ### Created: 04/08/2017   
 
 ---
 
+## Results
+[1. Data Analysis Results 08/19/2017](http://htmlpreview.github.com/?https://github.com/sargdavid/snippets.cvi/blob/master/rnotebook/ggplot_errorbar_barplot.nb.html)
+
 ## Daily Logs
 ### 08/18/2017
-* Created CVIRU Organization in GitHUb and moved this repository under the organization    
+* Created CVIRU Organization in GitHub and moved this repository under the organization    
 * Created a Project for the publication within this repository. See ToDo cards under Project tab
 * Finilazed details on analysis (discussed during the weekly meeting). See Project1's ToDo for details    
+* Created new R notebook (v4) and added the link to this document above
 
 ### 08/12/2017
 * To make the data compatable to the Census Bureau data, move the age reshold from 20 (see bulletpoint #3 from 07/29/2017 log) to 18 y.o.    
