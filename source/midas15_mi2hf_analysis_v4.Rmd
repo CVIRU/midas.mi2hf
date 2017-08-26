@@ -2,10 +2,17 @@
 title: "Heart Failure Following Myocardial Infarction in MIDAS"
 author: Jen Wellings; Davit Sargsyan
 date: 04/21/2017
-output: html_notebook
+output: 
+  html_notebook:
+    toc: true
+    number_sections: false
+    theme: united
+    highlight: tango
 ---
 
-```{r, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+# Header
+
+```{r Header, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
 # |----------------------------------------------------------------------------------|
 # | Project: Heart Failure Following Myocardial Infarction in MIDAS                  |
 # | Study ID: Pro20150002703                                                         |
@@ -24,8 +31,11 @@ require(data.table)
 require(ggplot2)
 require(gridExtra)
 require(knitr)
+```
 
-# PART I: Load data----
+# PART I: Load data
+
+```{r Data, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, fig.height=8, fig.width=12}
 load("C:/git_local/data/midas.mi2hf/case_07292017.RData")
 invisible({
   case[, hhyp.401 := NULL]
@@ -41,7 +51,7 @@ nrow(case)
 
 # Remove patients with prior or co-occurung HF (DS, 08/19/2017)----
 case <- droplevels(subset(case,
-                         !(hchf.acute | chf.acute.current)))
+                          !(hchf.acute | chf.acute.current)))
 nrow(case)
 
 # Make agper 10 year
@@ -79,176 +89,179 @@ p0
 summary(case)
 
 table1 <- t(data.table(`Mean Age at First AMI Admission +/- S.D.` = paste(round(mean(case$AGE), 1),
-                                                                                     "+/-",
-                                                                                     round(sd(case$AGE), 1),
-                                                                                     sep = ""),
-                                  `Female(%)` = round(100*sum(case$SEX == "F")/nrow(case), 
-                                                      1),
-                                  `Race(%)` = "",
-                                  `  White` = round(100*sum(case$RACE == "White")/nrow(case),
-                                                    1),
-                                  `  Black` = round(100*sum(case$RACE == "Black")/nrow(case),
-                                                    1),
-                                  `  Other` = round(100*sum(case$RACE == "Other")/nrow(case),
-                                                    1),
-                                  `Ethnicity(%)` = "",
-                                  `  Hispanic` = round(100*sum(case$HISPAN == "Hispanic")/nrow(case), 
-                                                       1),
-                                  `  Non-hispanic` = round(100*sum(case$HISPAN == "Non-hispanic")/nrow(case), 
-                                                           1),
-                                  `  Other` = round(100*sum(case$HISPAN == "Unknown")/nrow(case), 
-                                                    1),
-                                  `Insurance(%)` = "",
-                                  `  Commercial` = round(100*sum(case$PRIME == "COMMERCIAL")/nrow(case), 
-                                                         1),
-                                  `  Medicare` = round(100*sum(case$PRIME == "medicare")/nrow(case), 
-                                                       1),
-                                  `  Medicade/Self-Pay/Other` = round(100*sum(case$PRIME == "medicaid/self-pay/other")/nrow(case), 
-                                                                      1)))
+                                                                          "+/-",
+                                                                          round(sd(case$AGE), 1),
+                                                                          sep = ""),
+                       `Female(%)` = round(100*sum(case$SEX == "F")/nrow(case), 
+                                           1),
+                       `Race(%)` = "",
+                       `  White` = round(100*sum(case$RACE == "White")/nrow(case),
+                                         1),
+                       `  Black` = round(100*sum(case$RACE == "Black")/nrow(case),
+                                         1),
+                       `  Other` = round(100*sum(case$RACE == "Other")/nrow(case),
+                                         1),
+                       `Ethnicity(%)` = "",
+                       `  Hispanic` = round(100*sum(case$HISPAN == "Hispanic")/nrow(case), 
+                                            1),
+                       `  Non-hispanic` = round(100*sum(case$HISPAN == "Non-hispanic")/nrow(case), 
+                                                1),
+                       `  Other` = round(100*sum(case$HISPAN == "Unknown")/nrow(case), 
+                                         1),
+                       `Insurance(%)` = "",
+                       `  Commercial` = round(100*sum(case$PRIME == "COMMERCIAL")/nrow(case), 
+                                              1),
+                       `  Medicare` = round(100*sum(case$PRIME == "medicare")/nrow(case), 
+                                            1),
+                       `  Medicade/Self-Pay/Other` = round(100*sum(case$PRIME == "medicaid/self-pay/other")/nrow(case), 
+                                                           1)))
 colnames(table1) <- "Summary"
 kable(table1)
+```
 
-# PART II: Rates----
+# PART II: Rates
+
+```{r Rates, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, fig.height=8, fig.width=12}
 invisible({
-# Table 1a Appendix: readmissions rates due to HF----
-# 30 days----
-t1 <- addmargins(table(case$dschyear,
-                       case$days2post.chf.acute.dx1 < 31 &
-                         !is.na(case$days2post.chf.acute.dx1)))
-t1 <- data.table(dschyear = rownames(t1),
-                 hf30 = t1[, 2],
-                 N = t1[ , 3])
-t1[, rate := round(100*hf30/N, 2)]
-
-# 90 days----
-t2 <- addmargins(table(case$dschyear,
-                       case$days2post.chf.acute.dx1 < 91 &
-                         !is.na(case$days2post.chf.acute.dx1)))
-t2 <- data.table(dschyear = rownames(t2),
-                 hf90 = t2[, 2],
-                 N = t2[ , 3])
-t2[, rate := round(100*hf90/N, 2)]
-
-# 180 days----
-t3 <- addmargins(table(case$dschyear,
-                       case$days2post.chf.acute.dx1 < 181 &
-                         !is.na(case$days2post.chf.acute.dx1)))
-t3 <- data.table(dschyear = rownames(t3),
-                 hf180 = t3[, 2],
-                 N = t3[ , 3])
-t3[, rate := round(100*hf180/N, 2)]
-
-# 1 year----
-t4 <- addmargins(table(case$dschyear,
-                       case$days2post.chf.acute.dx1 < 366 &
-                         !is.na(case$days2post.chf.acute.dx1)))
-t4 <- data.table(dschyear = rownames(t4),
-                 hf1y = t4[, 2],
-                 N = t4[ , 3])
-t4[, rate := round(100*hf1y/N, 2)]
-
-# Combine----
-t1a.apx <- data.table(dschyear = t1$dschyear,
-                      rate.30 = t1$rate,
-                      rate.90 = t2$rate,
-                      rate.180 = t3$rate,
-                      rate.1y = t4$rate)
-
-# Table 1b Appendix: all-cause death rates----
-# 30 days----
-t1 <- addmargins(table(case$dschyear,
-                       case$days2death < 31 &
-                         !is.na(case$days2death)))
-t1 <- data.table(dschyear = rownames(t1),
-                 death30 = t1[, 2],
-                 N = t1[ , 3])
-t1[, rate := round(100*death30/N, 2)]
-
-# 90 days----
-t2 <- addmargins(table(case$dschyear,
-                       case$days2death < 91 &
-                         !is.na(case$days2death)))
-t2 <- data.table(dschyear = rownames(t2),
-                 death90 = t2[, 2],
-                 N = t2[ , 3])
-t2[, rate := round(100*death90/N, 2)]
-
-# 180 days----
-t3 <- addmargins(table(case$dschyear,
-                       case$days2death < 181 &
-                         !is.na(case$days2death)))
-t3 <- data.table(dschyear = rownames(t3),
-                 death180 = t3[, 2],
-                 N = t3[ , 3])
-t3[, rate := round(100*death180/N, 2)]
-
-# 1 year----
-t4 <- addmargins(table(case$dschyear,
-                       case$days2death < 366 &
-                         !is.na(case$days2death)))
-t4 <- data.table(dschyear = rownames(t4),
-                 death1y = t4[, 2],
-                 N = t4[ , 3])
-t4[, rate := round(100*death1y/N, 2)]
-
-# Combine----
-t1b.apx <- data.table(dschyear = t1$dschyear,
-                      rate.30 = t1$rate,
-                      rate.90 = t2$rate,
-                      rate.180 = t3$rate,
-                      rate.1y = t4$rate)
-
-# Table 1c Appendix: all-cause death or readmission due to HF rates----
-# 30 days----
-t1 <- addmargins(table(case$dschyear,
-                       (case$days2post.chf.acute.dx1 < 31 &
-                          !is.na(case$days2post.chf.acute.dx1)) |
-                       (case$days2death < 31 &
-                           !is.na(case$days2death))))
-t1 <- data.table(dschyear = rownames(t1),
-                 death.or.hf30 = t1[, 2],
-                 N = t1[ , 3])
-t1[, rate := round(100*death.or.hf30/N, 2)]
-
-# 90 days----
-t2 <- addmargins(table(case$dschyear,
-                       (case$days2post.chf.acute.dx1 < 91 &
-                          !is.na(case$days2post.chf.acute.dx1)) |
-                         (case$days2death < 91 &
-                            !is.na(case$days2death))))
-t2 <- data.table(dschyear = rownames(t2),
-                 death.or.hf90 = t2[, 2],
-                 N = t2[ , 3])
-t2[, rate := round(100*death.or.hf90/N, 2)]
-
-# 180 days----
-t3 <- addmargins(table(case$dschyear,
-                       (case$days2post.chf.acute.dx1 < 181 &
-                          !is.na(case$days2post.chf.acute.dx1)) |
-                         (case$days2death < 181 &
-                            !is.na(case$days2death))))
-t3 <- data.table(dschyear = rownames(t3),
-                 death.or.hf180 = t3[, 2],
-                 N = t3[ , 3])
-t3[, rate := round(100*death.or.hf180/N, 2)]
-
-# 1 year----
-t4 <- addmargins(table(case$dschyear,
-                       (case$days2post.chf.acute.dx1 < 366 &
-                          !is.na(case$days2post.chf.acute.dx1)) |
-                         (case$days2death < 366 &
-                            !is.na(case$days2death))))
-t4 <- data.table(dschyear = rownames(t4),
-                 death.or.hf1y = t4[, 2],
-                 N = t4[ , 3])
-t4[, rate := round(100*death.or.hf1y/N, 2)]
-
-# Combine----
-t1c.apx <- data.table(dschyear = t1$dschyear,
-                      rate.30 = t1$rate,
-                      rate.90 = t2$rate,
-                      rate.180 = t3$rate,
-                      rate.1y = t4$rate)
+  # Table 1a Appendix: readmissions rates due to HF----
+  # 30 days----
+  t1 <- addmargins(table(case$dschyear,
+                         case$days2post.chf.acute.dx1 < 31 &
+                           !is.na(case$days2post.chf.acute.dx1)))
+  t1 <- data.table(dschyear = rownames(t1),
+                   hf30 = t1[, 2],
+                   N = t1[ , 3])
+  t1[, rate := round(100*hf30/N, 2)]
+  
+  # 90 days----
+  t2 <- addmargins(table(case$dschyear,
+                         case$days2post.chf.acute.dx1 < 91 &
+                           !is.na(case$days2post.chf.acute.dx1)))
+  t2 <- data.table(dschyear = rownames(t2),
+                   hf90 = t2[, 2],
+                   N = t2[ , 3])
+  t2[, rate := round(100*hf90/N, 2)]
+  
+  # 180 days----
+  t3 <- addmargins(table(case$dschyear,
+                         case$days2post.chf.acute.dx1 < 181 &
+                           !is.na(case$days2post.chf.acute.dx1)))
+  t3 <- data.table(dschyear = rownames(t3),
+                   hf180 = t3[, 2],
+                   N = t3[ , 3])
+  t3[, rate := round(100*hf180/N, 2)]
+  
+  # 1 year----
+  t4 <- addmargins(table(case$dschyear,
+                         case$days2post.chf.acute.dx1 < 366 &
+                           !is.na(case$days2post.chf.acute.dx1)))
+  t4 <- data.table(dschyear = rownames(t4),
+                   hf1y = t4[, 2],
+                   N = t4[ , 3])
+  t4[, rate := round(100*hf1y/N, 2)]
+  
+  # Combine----
+  t1a.apx <- data.table(dschyear = t1$dschyear,
+                        rate.30 = t1$rate,
+                        rate.90 = t2$rate,
+                        rate.180 = t3$rate,
+                        rate.1y = t4$rate)
+  
+  # Table 1b Appendix: all-cause death rates----
+  # 30 days----
+  t1 <- addmargins(table(case$dschyear,
+                         case$days2death < 31 &
+                           !is.na(case$days2death)))
+  t1 <- data.table(dschyear = rownames(t1),
+                   death30 = t1[, 2],
+                   N = t1[ , 3])
+  t1[, rate := round(100*death30/N, 2)]
+  
+  # 90 days----
+  t2 <- addmargins(table(case$dschyear,
+                         case$days2death < 91 &
+                           !is.na(case$days2death)))
+  t2 <- data.table(dschyear = rownames(t2),
+                   death90 = t2[, 2],
+                   N = t2[ , 3])
+  t2[, rate := round(100*death90/N, 2)]
+  
+  # 180 days----
+  t3 <- addmargins(table(case$dschyear,
+                         case$days2death < 181 &
+                           !is.na(case$days2death)))
+  t3 <- data.table(dschyear = rownames(t3),
+                   death180 = t3[, 2],
+                   N = t3[ , 3])
+  t3[, rate := round(100*death180/N, 2)]
+  
+  # 1 year----
+  t4 <- addmargins(table(case$dschyear,
+                         case$days2death < 366 &
+                           !is.na(case$days2death)))
+  t4 <- data.table(dschyear = rownames(t4),
+                   death1y = t4[, 2],
+                   N = t4[ , 3])
+  t4[, rate := round(100*death1y/N, 2)]
+  
+  # Combine----
+  t1b.apx <- data.table(dschyear = t1$dschyear,
+                        rate.30 = t1$rate,
+                        rate.90 = t2$rate,
+                        rate.180 = t3$rate,
+                        rate.1y = t4$rate)
+  
+  # Table 1c Appendix: all-cause death or readmission due to HF rates----
+  # 30 days----
+  t1 <- addmargins(table(case$dschyear,
+                         (case$days2post.chf.acute.dx1 < 31 &
+                            !is.na(case$days2post.chf.acute.dx1)) |
+                           (case$days2death < 31 &
+                              !is.na(case$days2death))))
+  t1 <- data.table(dschyear = rownames(t1),
+                   death.or.hf30 = t1[, 2],
+                   N = t1[ , 3])
+  t1[, rate := round(100*death.or.hf30/N, 2)]
+  
+  # 90 days----
+  t2 <- addmargins(table(case$dschyear,
+                         (case$days2post.chf.acute.dx1 < 91 &
+                            !is.na(case$days2post.chf.acute.dx1)) |
+                           (case$days2death < 91 &
+                              !is.na(case$days2death))))
+  t2 <- data.table(dschyear = rownames(t2),
+                   death.or.hf90 = t2[, 2],
+                   N = t2[ , 3])
+  t2[, rate := round(100*death.or.hf90/N, 2)]
+  
+  # 180 days----
+  t3 <- addmargins(table(case$dschyear,
+                         (case$days2post.chf.acute.dx1 < 181 &
+                            !is.na(case$days2post.chf.acute.dx1)) |
+                           (case$days2death < 181 &
+                              !is.na(case$days2death))))
+  t3 <- data.table(dschyear = rownames(t3),
+                   death.or.hf180 = t3[, 2],
+                   N = t3[ , 3])
+  t3[, rate := round(100*death.or.hf180/N, 2)]
+  
+  # 1 year----
+  t4 <- addmargins(table(case$dschyear,
+                         (case$days2post.chf.acute.dx1 < 366 &
+                            !is.na(case$days2post.chf.acute.dx1)) |
+                           (case$days2death < 366 &
+                              !is.na(case$days2death))))
+  t4 <- data.table(dschyear = rownames(t4),
+                   death.or.hf1y = t4[, 2],
+                   N = t4[ , 3])
+  t4[, rate := round(100*death.or.hf1y/N, 2)]
+  
+  # Combine----
+  t1c.apx <- data.table(dschyear = t1$dschyear,
+                        rate.30 = t1$rate,
+                        rate.90 = t2$rate,
+                        rate.180 = t3$rate,
+                        rate.1y = t4$rate)
 })
 
 # Print Table 1a,b&c Appendix----
@@ -319,12 +332,29 @@ p1 <- ggplot(data = out,
                                    hjust = 1),
         plot.title = element_text(hjust = 0.5))
 p1
+```
 
-# PART III: Models----
+# PART III: Logistic Regression Models
+## Readmission for HF
+
+```{r ModelsHF, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, fig.height=8, fig.width=12}
+t2abc.names <- c("Discharge year",
+                 "Age (per 10 Years)",
+                 "Sex (Male)",
+                 "Non-Hispanic vs. Hispanic",
+                 "Unknown vs. Hispanic",
+                 "Commercial Insurance vs. Medicare",
+                 "Medicade/Self-Pay/Other vs. Medicare",
+                 "History of Hypertension",
+                 "History of Diabetes",
+                 "History of Chronic Liver Disease",
+                 "History of Chronic Kidney Disease",
+                 "History of COPD",
+                 "History of Disorder of Lipoid Metabolism")
+
 # NOTE (DS, 08/19/2017) : there are 267 cases of chronic HF; 
 #                         no significant effect; disregarded but kept
 # Publication/Table 2a: readmissions rates due to HF----
-# a. readmission for HF----
 case$hf30 <- case$hf90 <- case$hf180 <- case$hf1y <- FALSE
 case$hf30[case$days2post.chf.acute.dx1 < 31] <- TRUE
 case$hf90[case$days2post.chf.acute.dx1 < 91] <- TRUE
@@ -392,19 +422,6 @@ m2a.1y <- glm(hf1y ~ dschyear +
 summary(m2a.1y)
 
 # Combine
-t2a.names <- c("Discharge year",
-               "Age (per 10 Years)",
-               "Sex (Male)",
-               "Non-Hispanic vs. Hispanic",
-               "Unknown vs. Hispanic",
-               "Commercial Insurance vs. Medicare",
-               "Medicade/Self-Pay/Other vs. Medicare",
-               "History of Hypertension",
-               "History of Diabetes",
-               "History of Chronic Liver Disease",
-               "History of Chronic Kidney Disease",
-               "History of COPD",
-               "History of Disorder of Lipoid Metabolism")
 s2a <- list(summary(m2a.30),
             summary(m2a.90),
             summary(m2a.180),
@@ -423,7 +440,7 @@ t2a <- lapply(s2a, function(a) {
                                          "**",
                                          "*"), ""))
   rownames(out) <- NULL
-  out$names <- t2a.names
+  out$names <- t2abc.names
   return(out)
 })
 
@@ -433,7 +450,7 @@ t2a <- data.table(followup = rep(c("30 Days",
                                    "90 Days",
                                    "180 Days",
                                    "1 Year"),
-                                 each = length(t2a.names)),
+                                 each = length(t2abc.names)),
                   t2a)
 
 
@@ -448,8 +465,8 @@ t2a
 
 # Plot OR----
 p2a <- ggplot(t2a, 
-             aes(x = names, 
-                 y = coef)) +
+              aes(x = names, 
+                  y = coef)) +
   facet_wrap( ~ followup, 
               ncol = 2) + 
   geom_hline(yintercept = 1,
@@ -472,7 +489,7 @@ p2a <- ggplot(t2a,
   scale_x_discrete("Risk Factors",
                    labels = LETTERS[1:nlevels(t2a$names)]) + 
   scale_y_continuous("Odds Ratios") + 
-  ggtitle("Odds Ratios of All-Cause Death After First AMI Discharge") +
+  ggtitle("Odds Ratios of Readmission for HF After First AMI Discharge") +
   theme(axis.text.x = element_text(size = 12,
                                    hjust = 1),
         axis.text.y = element_text(size = 12),
@@ -480,4 +497,304 @@ p2a <- ggplot(t2a,
         plot.title = element_text(hjust = 0.5)) +
   guides(fill = guide_legend("Risk Factors Legend"))
 p2a
+```
+
+## All-Cause Death
+
+```{r ModelsDeath, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, fig.height=8, fig.width=12}
+# Publication/Table 2b: all-cause death----
+case$dead30 <- case$dead90 <- case$dead180 <- case$dead1y <- FALSE
+case$dead30[case$days2death < 31] <- TRUE
+case$dead90[case$days2death < 91] <- TRUE
+case$dead180[case$days2death < 181] <- TRUE
+case$dead1y[case$days2death < 366] <- TRUE
+
+m2b.30 <- glm(dead30 ~ dschyear +
+                decade + 
+                SEX +
+                HISPAN +
+                PRIME +
+                hhyp + 
+                hdiab + 
+                hcld +
+                hckd + 
+                hcopd +
+                hlipid,
+              family = binomial(logit),
+              data = case)
+summary(m2b.30)
+
+m2b.90 <- glm(dead90 ~ dschyear +
+                decade + 
+                SEX +
+                HISPAN +
+                PRIME +
+                hhyp + 
+                hdiab + 
+                hcld +
+                hckd + 
+                hcopd +
+                hlipid,
+              family = binomial(logit),
+              data = case)
+summary(m2b.90)
+
+m2b.180 <- glm(dead180 ~ dschyear +
+                 decade + 
+                 SEX +
+                 HISPAN +
+                 PRIME +
+                 hhyp + 
+                 hdiab + 
+                 hcld +
+                 hckd + 
+                 hcopd +
+                 hlipid,
+               family = binomial(logit),
+               data = case)
+summary(m2b.180)
+
+m2b.1y <- glm(dead1y ~ dschyear +
+                decade + 
+                SEX +
+                HISPAN +
+                PRIME +
+                hhyp + 
+                hdiab + 
+                hcld +
+                hckd + 
+                hcopd +
+                hlipid,
+              family = binomial(logit),
+              data = case)
+summary(m2b.1y)
+
+# Combine
+s2b <- list(summary(m2b.30),
+            summary(m2b.90),
+            summary(m2b.180),
+            summary(m2b.1y))
+
+t2b <- lapply(s2b, function(a) {
+  out <- data.table(names = rownames(a$coefficients)[-1],
+                    coef = exp(a$coefficients[-1, 1]),
+                    lb = exp(a$coefficients[-1, 1] - 1.96*a$coefficients[-1, 2]),
+                    ub = exp(a$coefficients[-1, 1] + 1.96*a$coefficients[-1, 2]),
+                    pval = ifelse(a$coefficients[-1, 4] >= 0.001,
+                                  round(a$coefficients[-1, 4], 3),
+                                  "<0.001"),
+                    sign = ifelse(a$coefficients[-1, 4] <= 0.05, 
+                                  ifelse(a$coefficients[-1, 4] <= 0.01,
+                                         "**",
+                                         "*"), ""))
+  rownames(out) <- NULL
+  out$names <- t2abc.names
+  return(out)
+})
+
+t2b <- do.call("rbind", t2b)
+
+t2b <- data.table(followup = rep(c("30 Days",
+                                   "90 Days",
+                                   "180 Days",
+                                   "1 Year"),
+                                 each = length(t2abc.names)),
+                  t2b)
+
+
+t2b$names <- factor(t2b$names, 
+                    levels = unique(t2b$names))
+t2b$followup <- factor(as.character(t2b$followup),
+                       levels = c("30 Days", 
+                                  "90 Days", 
+                                  "180 Days", 
+                                  "1 Year"))
+t2b
+
+# Plot OR----
+p2b <- ggplot(t2b, 
+              aes(x = names, 
+                  y = coef)) +
+  facet_wrap( ~ followup, 
+              ncol = 2) + 
+  geom_hline(yintercept = 1,
+             colour = "grey",
+             size = 1.1,
+             linetype = 2) +
+  geom_errorbar(aes(ymin = lb,
+                    ymax = ub),
+                size = 0.4,
+                width = 0.2) +
+  geom_point(aes(x = names, 
+                 y = coef,
+                 fill = names),
+             size = 2,
+             shape = 21) +
+  scale_fill_manual(labels = paste(LETTERS[1:nlevels(t2b$names)],
+                                   levels(t2b$names),
+                                   sep = ": "),
+                    values = rainbow(nlevels(t2b$names))) +
+  scale_x_discrete("Risk Factors",
+                   labels = LETTERS[1:nlevels(t2b$names)]) + 
+  scale_y_continuous("Odds Ratios") + 
+  ggtitle("Odds Ratios of All-Cause Death After First AMI Discharge") +
+  theme(axis.text.x = element_text(size = 12,
+                                   hjust = 1),
+        axis.text.y = element_text(size = 12),
+        text = element_text(size = 12),
+        plot.title = element_text(hjust = 0.5)) +
+  guides(fill = guide_legend("Risk Factors Legend"))
+p2b
+```
+
+## Readmission for HF or All-Cause Death
+
+```{r ModelsHForDeath, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, fig.height=8, fig.width=12}
+# Publication/Table 2c: all-cause death or readmission for HF----
+case$hf.dead30 <- case$hf.dead90 <- case$hf.dead180 <- case$hf.dead1y <- FALSE
+case$hf.dead30[case$days2post.chf.acute.dx1 < 31 | 
+                 case$days2death < 31] <- TRUE
+case$hf.dead90[case$days2post.chf.acute.dx1 < 91 |
+                 case$days2death < 91] <- TRUE
+case$hf.dead180[case$days2post.chf.acute.dx1 < 181 |
+                  case$days2death < 181] <- TRUE
+case$hf.dead1y[case$days2post.chf.acute.dx1 < 366 |
+                 case$days2death < 366] <- TRUE
+
+m2c.30 <- glm(hf.dead30 ~ dschyear +
+                decade + 
+                SEX +
+                HISPAN +
+                PRIME +
+                hhyp + 
+                hdiab + 
+                hcld +
+                hckd + 
+                hcopd +
+                hlipid,
+              family = binomial(logit),
+              data = case)
+summary(m2c.30)
+
+m2c.90 <- glm(hf.dead90 ~ dschyear +
+                decade + 
+                SEX +
+                HISPAN +
+                PRIME +
+                hhyp + 
+                hdiab + 
+                hcld +
+                hckd + 
+                hcopd +
+                hlipid,
+              family = binomial(logit),
+              data = case)
+summary(m2c.90)
+
+m2c.180 <- glm(hf.dead180 ~ dschyear +
+                 decade + 
+                 SEX +
+                 HISPAN +
+                 PRIME +
+                 hhyp + 
+                 hdiab + 
+                 hcld +
+                 hckd + 
+                 hcopd +
+                 hlipid,
+               family = binomial(logit),
+               data = case)
+summary(m2c.180)
+
+m2c.1y <- glm(hf.dead1y ~ dschyear +
+                decade + 
+                SEX +
+                HISPAN +
+                PRIME +
+                hhyp + 
+                hdiab + 
+                hcld +
+                hckd + 
+                hcopd +
+                hlipid,
+              family = binomial(logit),
+              data = case)
+summary(m2c.1y)
+
+# Combine
+s2c <- list(summary(m2c.30),
+            summary(m2c.90),
+            summary(m2c.180),
+            summary(m2c.1y))
+
+t2c <- lapply(s2c, function(a) {
+  out <- data.table(names = rownames(a$coefficients)[-1],
+                    coef = exp(a$coefficients[-1, 1]),
+                    lb = exp(a$coefficients[-1, 1] - 1.96*a$coefficients[-1, 2]),
+                    ub = exp(a$coefficients[-1, 1] + 1.96*a$coefficients[-1, 2]),
+                    pval = ifelse(a$coefficients[-1, 4] >= 0.001,
+                                  round(a$coefficients[-1, 4], 3),
+                                  "<0.001"),
+                    sign = ifelse(a$coefficients[-1, 4] <= 0.05, 
+                                  ifelse(a$coefficients[-1, 4] <= 0.01,
+                                         "**",
+                                         "*"), ""))
+  rownames(out) <- NULL
+  out$names <- t2abc.names
+  return(out)
+})
+
+t2c <- do.call("rbind", t2c)
+
+t2c <- data.table(followup = rep(c("30 Days",
+                                   "90 Days",
+                                   "180 Days",
+                                   "1 Year"),
+                                 each = length(t2abc.names)),
+                  t2c)
+
+
+t2c$names <- factor(t2c$names, 
+                    levels = unique(t2c$names))
+t2c$followup <- factor(as.character(t2c$followup),
+                       levels = c("30 Days", 
+                                  "90 Days", 
+                                  "180 Days", 
+                                  "1 Year"))
+t2c
+
+# Plot OR----
+p2c <- ggplot(t2c, 
+              aes(x = names, 
+                  y = coef)) +
+  facet_wrap( ~ followup, 
+              ncol = 2) + 
+  geom_hline(yintercept = 1,
+             colour = "grey",
+             size = 1.1,
+             linetype = 2) +
+  geom_errorbar(aes(ymin = lb,
+                    ymax = ub),
+                size = 0.4,
+                width = 0.2) +
+  geom_point(aes(x = names, 
+                 y = coef,
+                 fill = names),
+             size = 2,
+             shape = 21) +
+  scale_fill_manual(labels = paste(LETTERS[1:nlevels(t2b$names)],
+                                   levels(t2b$names),
+                                   sep = ": "),
+                    values = rainbow(nlevels(t2b$names))) +
+  scale_x_discrete("Risk Factors",
+                   labels = LETTERS[1:nlevels(t2b$names)]) + 
+  scale_y_continuous("Odds Ratios") + 
+  ggtitle("Odds Ratios of All-Cause Death or Readmission for HF \n After First AMI Discharge") +
+  theme(axis.text.x = element_text(size = 12,
+                                   hjust = 1),
+        axis.text.y = element_text(size = 12),
+        text = element_text(size = 12),
+        plot.title = element_text(hjust = 0.5)) +
+  guides(fill = guide_legend("Risk Factors Legend"))
+p2c
 ```

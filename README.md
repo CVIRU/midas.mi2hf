@@ -8,12 +8,17 @@
 ---
 
 ## Results
-[1. Data Analysis Results 08/19/2017](http://htmlpreview.github.com/?https://github.com/CVIRU/midas.mi2hf/blob/master/rnotebook/midas15_mi2hf_analysis_v4.nb.html)
+[1. Data Analysis Results 08/25/2017](http://htmlpreview.github.com/?https://github.com/CVIRU/midas.mi2hf/blob/master/rnotebook/midas15_mi2hf_analysis_v4.nb.html)
 
 ## Daily Logs
-### 08/18/2017
+### 08/25/2017
+* Added logistic regressions for all-cause death and for the cmbined HF readmisson/all-cause death endpoints    
+
+### 08/19/2017
 * Created CVIRU Organization in GitHub and moved this repository under the organization    
 * Created a Project for the publication within this repository. See ToDo cards under Project tab
+
+### 08/18/2017
 * Finilazed details on analysis (discussed during the weekly meeting). See Project1's ToDo for details    
 * Created new R notebook (v4) and added the link to this document above
 
