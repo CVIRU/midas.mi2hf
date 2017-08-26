@@ -8,9 +8,14 @@
 ---
 
 ## Results
-[1. Data Analysis Results 08/25/2017](http://htmlpreview.github.com/?https://github.com/CVIRU/midas.mi2hf/blob/master/rnotebook/midas15_mi2hf_analysis_v4.nb.html)
+[1. Data Analysis Results 08/26/2017](http://htmlpreview.github.com/?https://github.com/CVIRU/midas.mi2hf/blob/master/rnotebook/midas15_mi2hf_analysis_v4.nb.html)
 
 ## Daily Logs
+### 08/26/2017
+* Added Cox model for HF readmission    
+* Finished the analysis: all figures and tables are now complete    
+* Sent final versions of all figures, tables and scripts to the team    
+
 ### 08/25/2017
 * Added logistic regressions for all-cause death and for the cmbined HF readmisson/all-cause death endpoints    
 
