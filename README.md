@@ -11,6 +11,12 @@
 [1. Data Analysis Results 08/26/2017](http://htmlpreview.github.com/?https://github.com/CVIRU/midas.mi2hf/blob/master/rnotebook/midas15_mi2hf_analysis_v4.nb.html)
 
 ## Daily Logs
+### 09/02/2017
+* Renamed "...Lipoid" as per [ICD-9 website](http://www.icd9data.com/2014/Volume1/240-279/270-279/272/default.htm) to "Lipid" per Drs. William and John Kostis' request. Edited and reran _midas15_mi2hf_analysis_v4.Rmd_ script, updated all plots and tables accordingly
+
+### 09/01/2017
+* Received Jen's revison (_docs\Publications\HF after MI_JW_083017.docx_)  and revised (_docs\Publications\HF after MI_DS_09012017.docx_)
+
 ### 08/26/2017
 * Added Cox model for HF readmission    
 * Finished the analysis: all figures and tables are now complete    

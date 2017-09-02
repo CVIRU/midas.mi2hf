@@ -115,7 +115,7 @@ table1 <- t(data.table(`Mean Age at First AMI Admission +/- S.D.` = paste(round(
                                             1),
                        `  Non-hispanic` = round(100*sum(case$HISPAN == "Non-hispanic")/nrow(case), 
                                                 1),
-                       `  Other` = round(100*sum(case$HISPAN == "Unknown")/nrow(case), 
+                       `  Unknown` = round(100*sum(case$HISPAN == "Unknown")/nrow(case), 
                                          1),
                        `Insurance(%)` = "",
                        `  Commercial` = round(100*sum(case$PRIME == "COMMERCIAL")/nrow(case), 
@@ -422,7 +422,7 @@ t2abc.names <- c("Discharge year",
                  "History of Chronic Liver Disease",
                  "History of Chronic Kidney Disease",
                  "History of COPD",
-                 "History of Disorder of Lipoid Metabolism")
+                 "History of Disorder of Lipid Metabolism")
 
 # NOTE (DS, 08/19/2017) : there are 267 cases of chronic HF; 
 #                         no significant effect; disregarded but kept
