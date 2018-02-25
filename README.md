@@ -11,11 +11,16 @@
 [1. Data Analysis Results 08/26/2017](http://htmlpreview.github.com/?https://github.com/CVIRU/midas.mi2hf/blob/master/rnotebook/midas15_mi2hf_analysis_v4.nb.html)
 
 ## Daily Logs
+### 02/24/2018
+* Addressed comments by reviewers. The following is from Dr. Kostis' email (02/19/2018). See ***American Journal of Cardiology Reviewers Comments 02192018 .txt***, specifially Reviewer #1 Comment 4:   
+     
+*Why limiting your analysis to one-year? It might be also intriguing to extend the follow-up period of an index MI to 5 years and not to 1 year. E.g. for patients enrolled between 2000 to 2005 and for patients enrolled between 2005 to 2010 it might be important to know the 5-year HF incidence. This might provide a longer term perspective: is the short and intermediate term follow-up findings similar to those of a longer term follow-up?*   
+
 ### 09/02/2017
-* Renamed "...Lipoid" as per [ICD-9 website](http://www.icd9data.com/2014/Volume1/240-279/270-279/272/default.htm) to "Lipid" per Drs. William and John Kostis' request. Edited and reran _midas15_mi2hf_analysis_v4.Rmd_ script, updated all plots and tables accordingly
+* Renamed "...Lipoid" as per [ICD-9 website](http://www.icd9data.com/2014/Volume1/240-279/270-279/272/default.htm) to "Lipid" per Drs. William and John Kostis' request. Edited and reran *midas15_mi2hf_analysis_v4.Rmd* script, updated all plots and tables accordingly
 
 ### 09/01/2017
-* Received Jen's revison (_docs\Publications\HF after MI_JW_083017.docx_)  and revised (_docs\Publications\HF after MI_DS_09012017.docx_)
+* Received Jen's revison (*~\docs\Publications\HF after MI_JW_083017.docx*)  and revised (*~\docs\Publications\HF after MI_DS_09012017.docx*)
 
 ### 08/26/2017
 * Added Cox model for HF readmission    
