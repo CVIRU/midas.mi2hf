@@ -8,9 +8,22 @@
 ---
 
 ## Results
-[1. Data Analysis Results 08/26/2017](http://htmlpreview.github.com/?https://github.com/CVIRU/midas.mi2hf/blob/master/rnotebook/midas15_mi2hf_analysis_v4.nb.html)
+### Final workflow
+1. Data preprocessing: *~source/midas15_mi2hf_data_v4.R*        
+2. Analysis: *~source/midas15_mi2hf_analysis_v6.Rmd*     
+3. Results: [Data Analysis Results 08/26/2017](http://htmlpreview.github.com/?https://github.com/CVIRU/midas.mi2hf/blob/master/rnotebook/midas15_mi2hf_analysis_v4.nb.html)
 
 ## Daily Logs
+### 03/03/2018
+* Cleaning the repository, finalizing scripts
+
+### 03/02/2018
+* Edited *midas15_mi2hf_data_v4.R* to separate subcardial AMIs
+* Added *midas15_mi2hf_post_hoc_for_reviewers_v1.R* script
+
+### 02/28/2018
+* New version of data file: *midas15_mi2hf_data_v4.R*. Added revascularization (PCI and CABG).
+
 ### 02/24/2018
 * Addressed comments by reviewers. The following is from Dr. Kostis' email (02/19/2018). See ***American Journal of Cardiology Reviewers Comments 02192018 .txt***, specifially Reviewer #1 Comment 4:   
      

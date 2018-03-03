@@ -3,13 +3,13 @@ title: "Heart Failure Following Myocardial Infarction in MIDAS"
 author: "Davit Sargsyan"
 date: "04/21/2017"
 output:
-  html_document:
-    df_print: paged
-    toc: yes
   html_notebook:
     highlight: tango
     number_sections: no
     theme: united
+    toc: yes
+  html_document:
+    df_print: paged
     toc: yes
 ---
 
@@ -44,15 +44,7 @@ require(survival)
 # PART I: Data
 
 ```{r Data, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, fig.height=5, fig.width=5}
-load("C:/git_local/data/midas.mi2hf/case_07292017.RData")
-invisible({
-  case[, hhyp.401 := NULL]
-  case[, hhyp.402 := NULL]
-  case[, hhyp.403 := NULL]
-  case[, hhyp.404 := NULL]
-  case[, hhyp.405 := NULL]
-  gc()
-})
+load("C:/git_local/data/midas.mi2hf/case_02282018.RData")
 
 # Number of patients
 nrow(case)
@@ -1224,4 +1216,133 @@ print(p4)
 graphics.off()
 
 p4
+```
+
+```{r PostHoc, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, fig.height=5, fig.width=5}
+# Part I: all AMIs----
+# Analysis, excluding AMI admission----
+case$pci5y <- FALSE
+case$pci5y[!is.na(case$days2post.pci) &
+              case$days2post.pci > 0 &
+              case$days2post.pci < 5*365.25] <- TRUE
+case$pci5y[case$days2post.pci < case$days2post.chf.acute.dx1] <- FALSE
+
+case$cabg5y <- FALSE
+case$cabg5y[!is.na(case$days2post.cabg) &
+              case$days2post.cabg > 0 &
+              case$days2post.cabg < 5*365.25] <- TRUE
+case$cabg5y[case$days2post.cabg < case$days2post.chf.acute.dx1] <- FALSE
+
+m4a.5y <- glm(hf5y ~ dschyear +
+                decade + 
+                SEX +
+                HISPAN +
+                PRIME +
+                hhyp + 
+                hdiab + 
+                hcld +
+                hckd + 
+                hcopd +
+                hlipid + 
+                pci5y +
+                cabg5y,
+              family = binomial(logit),
+              data = case[ADMDAT < "2011-01-01", ])
+s1 <- summary(m4a.5y)
+
+t5 <- data.frame(OR = exp(s1$coefficients[-1, 1]),
+           `95% C.I.L.L.` = exp(s1$coefficients[-1, 1] - 1.96*s1$coefficients[-1, 2]),
+           `95% C.I.U.L.` = exp(s1$coefficients[-1, 1] + 1.96*s1$coefficients[-1, 2]),
+           `p-Value` = round(s1$coefficients[-1, 4], 4))
+DT::datatable(round(t5, 3),
+              caption = "Table5: OR of PCI and CABG",
+              rownames = TRUE,
+              options = list(searching = TRUE,
+                             pageLength = nrow(t5)))
+
+# Analysis, including AMI admission----
+case$pci5y <- FALSE
+case$pci5y[!is.na(case$days2post.pci) &
+             case$days2post.pci >= 0 &
+             case$days2post.pci < 5*365.25] <- TRUE
+case$pci5y[case$days2post.pci < case$days2post.chf.acute.dx1] <- FALSE
+
+case$cabg5y <- FALSE
+case$cabg5y[!is.na(case$days2post.cabg) &
+              case$days2post.cabg >= 0 &
+              case$days2post.cabg < 5*365.25] <- TRUE
+case$cabg5y[case$days2post.cabg < case$days2post.chf.acute.dx1] <- FALSE
+
+m4b.5y <- glm(hf5y ~ dschyear +
+                decade + 
+                SEX +
+                HISPAN +
+                PRIME +
+                hhyp + 
+                hdiab + 
+                hcld +
+                hckd + 
+                hcopd +
+                hlipid + 
+                # hpci + 
+                # hcabg +
+                pci5y +
+                cabg5y,
+              family = binomial(logit),
+              data = case[ADMDAT < "2011-01-01", ])
+s1 <- summary(m4b.5y)
+t6 <- data.frame(OR = exp(s1$coefficients[-1, 1]),
+           `95% C.I.L.L.` = exp(s1$coefficients[-1, 1] - 1.96*s1$coefficients[-1, 2]),
+           `95% C.I.U.L.` = exp(s1$coefficients[-1, 1] + 1.96*s1$coefficients[-1, 2]),
+           `p-Value` = round(s1$coefficients[-1, 4], 4))
+DT::datatable(round(t6, 3),
+              caption = "Table5: OR of PCI and CABG, including AMI admission",
+              rownames = TRUE,
+              options = list(searching = TRUE,
+                             pageLength = nrow(t6)))
+
+
+# Subendocardial (non-STEMI) vs. transmural (STEMI) AMI----
+# a. Unadjusted----
+m5a.5y <- glm(hf5y ~ sub.ami.dx1,
+              family = binomial(logit),
+              data = case[ADMDAT < "2011-01-01", ])
+s1 <- summary(m5a.5y)
+t7 <- data.frame(OR = exp(s1$coefficients[-1, 1]),
+           `95% C.I.L.L.` = exp(s1$coefficients[-1, 1] - 1.96*s1$coefficients[-1, 2]),
+           `95% C.I.U.L.` = exp(s1$coefficients[-1, 1] + 1.96*s1$coefficients[-1, 2]),
+           `p-Value` = round(s1$coefficients[-1, 4], 4))
+DT::datatable(round(t7, 3),
+              caption = "Table7: OR by Type of AMI, Unadjusted",
+              rownames = TRUE,
+              options = list(searching = TRUE,
+                             pageLength = nrow(t7)))
+
+# b. Adjusted----
+m5b.5y <- glm(hf5y ~ sub.ami.dx1 +
+                dschyear +
+                decade + 
+                SEX +
+                HISPAN +
+                PRIME +
+                hhyp + 
+                hdiab + 
+                hcld +
+                hckd + 
+                hcopd +
+                hlipid,
+              family = binomial(logit),
+              data = case[ADMDAT < "2011-01-01", ])
+s1 <- summary(m5b.5y)
+
+t8 <- data.frame(OR = exp(s1$coefficients[-1, 1]),
+           `95% C.I.L.L.` = exp(s1$coefficients[-1, 1] - 1.96*s1$coefficients[-1, 2]),
+           `95% C.I.U.L.` = exp(s1$coefficients[-1, 1] + 1.96*s1$coefficients[-1, 2]),
+           `p-Value` = round(s1$coefficients[-1, 4], 4))
+
+DT::datatable(round(t8, 3),
+              caption = "Table8: OR by Type of AMI, Adjusted",
+              rownames = TRUE,
+              options = list(searching = TRUE,
+                             pageLength = nrow(t8)))
 ```
